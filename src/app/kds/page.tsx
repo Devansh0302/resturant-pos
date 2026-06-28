@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Clock, CheckCircle, ChefHat, LogOut, Flame, AlertCircle } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
+import { supabase } from '@/lib/supabase';
 
 interface Order {
   id: string;
@@ -103,8 +104,21 @@ export default function KDSPage() {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // Poll every 5s
-    return () => clearInterval(interval);
+    
+    // Subscribe to Supabase Realtime
+    const channel = supabase
+      .channel('kds_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const updateOrderStatus = async (orderId: string, action: 'ACCEPT' | 'READY' | 'FINISH') => {

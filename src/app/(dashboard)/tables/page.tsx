@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Grid3x3, Users, Clock, MapPin, Combine, Check, X, Unlink, Printer, Eye, RefreshCcw, User } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface TableData {
   id: string;
@@ -37,13 +38,20 @@ export default function TablesPage() {
 
   useEffect(() => {
     fetchTables();
-    
-    // Poll every 5 seconds to sync orders from waiters to admin/cashier panels
-    const interval = setInterval(() => {
-      fetchTables(false); // Pass false to avoid showing loading state on background sync
-    }, 5000);
-    
-    return () => clearInterval(interval);
+    // Subscribe to Supabase Realtime to instantly update tables when an order opens/closes
+    const channel = supabase
+      .channel('tables_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => {
+        fetchTables(false);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchTables(false);
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchTables = async (showLoading = true) => {

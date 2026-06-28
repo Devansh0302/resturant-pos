@@ -9,8 +9,10 @@ import { useOrderStore } from '@/store/order-store';
 import {
   Search, Plus, Minus, Trash2, Printer, FileText,
   X, ArrowLeft, Users, Loader2, AlertTriangle,
-  CreditCard, Smartphone, Banknote, MessageCircle, Send, ChefHat
+  CreditCard, Smartphone, Banknote, MessageCircle, Send, ChefHat,
+  CheckCircle, Flame, ArrowRight, Save, ReceiptIndianRupee
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { calculateGST, formatPriceShort } from '@/lib/gst';
 
 interface MenuItem {
@@ -68,12 +70,20 @@ export default function OrderPage() {
     fetchMenu();
     fetchTableAndOrder();
 
-    // Poll every 5 seconds to sync order state across waiter/admin panels
-    const interval = setInterval(() => {
-      fetchTableAndOrder(false);
-    }, 5000);
+    // Subscribe to Supabase Realtime to instantly update the order if someone else modifies it
+    const channel = supabase
+      .channel(`order_channel_${tableId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchTableAndOrder(false);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        fetchTableAndOrder(false);
+      })
+      .subscribe();
 
-    return () => clearInterval(interval);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [tableId]);
 
   const fetchMenu = async () => {

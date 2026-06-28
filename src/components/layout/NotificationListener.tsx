@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Printer, FileText, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface Notification {
   order_id: string;
@@ -62,7 +63,14 @@ export function NotificationListener() {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
+
+    // Subscribe to Supabase Realtime for instant notifications
+    const channel = supabase
+      .channel('notification_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchNotifications();
+      })
+      .subscribe();
     
     // Add interaction listener to unlock audio context
     const handleInteraction = async () => {
@@ -73,7 +81,7 @@ export function NotificationListener() {
     window.addEventListener('click', handleInteraction);
     
     return () => {
-      clearInterval(interval);
+      supabase.removeChannel(channel);
       window.removeEventListener('click', handleInteraction);
     };
   }, [isPrivileged]);
