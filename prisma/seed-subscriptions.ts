@@ -1,0 +1,178 @@
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('🌱 Seeding subscription history...\n');
+
+  const subscriptionHistory = [
+    {
+      id: 'sub-001',
+      invoice_number: 'SR-SUB-2023-001',
+      plan_name: 'Monthly Starter',
+      plan_type: 'MONTHLY',
+      billing_cycle: 'Jan 2023 – Feb 2023',
+      amount: 499,
+      tax_amount: 89.82,
+      total_amount: 588.82,
+      currency: 'INR',
+      payment_method: 'UPI',
+      payment_status: 'PAID',
+      transaction_id: 'upi_txn_8a7b3c9d1e',
+      event_type: 'NEW',
+      starts_at: new Date('2023-01-15'),
+      ends_at: new Date('2023-02-14'),
+      notes: 'First subscription – trial converted',
+      created_at: new Date('2023-01-15T10:30:00'),
+    },
+    {
+      id: 'sub-002',
+      invoice_number: 'SR-SUB-2023-002',
+      plan_name: 'Monthly Starter',
+      plan_type: 'MONTHLY',
+      billing_cycle: 'Feb 2023 – Mar 2023',
+      amount: 499,
+      tax_amount: 89.82,
+      total_amount: 588.82,
+      currency: 'INR',
+      payment_method: 'UPI',
+      payment_status: 'PAID',
+      transaction_id: 'upi_txn_2f4e6a8c0b',
+      event_type: 'RENEWAL',
+      starts_at: new Date('2023-02-15'),
+      ends_at: new Date('2023-03-14'),
+      created_at: new Date('2023-02-15T00:05:00'),
+    },
+    {
+      id: 'sub-003',
+      invoice_number: 'SR-SUB-2023-003',
+      plan_name: 'Monthly Starter',
+      plan_type: 'MONTHLY',
+      billing_cycle: 'Mar 2023 – Apr 2023',
+      amount: 499,
+      tax_amount: 89.82,
+      total_amount: 588.82,
+      currency: 'INR',
+      payment_method: 'UPI',
+      payment_status: 'PAID',
+      transaction_id: 'upi_txn_7d3b1e9f5a',
+      event_type: 'RENEWAL',
+      starts_at: new Date('2023-03-15'),
+      ends_at: new Date('2023-04-14'),
+      created_at: new Date('2023-03-15T00:05:00'),
+    },
+    {
+      id: 'sub-004',
+      invoice_number: 'SR-SUB-2023-004',
+      plan_name: 'Quarterly Professional',
+      plan_type: 'QUARTERLY',
+      billing_cycle: 'Apr 2023 – Jul 2023',
+      amount: 1299,
+      tax_amount: 233.82,
+      total_amount: 1532.82,
+      currency: 'INR',
+      payment_method: 'CARD',
+      payment_status: 'PAID',
+      transaction_id: 'card_txn_4a8b2c6d0e',
+      event_type: 'UPGRADE',
+      starts_at: new Date('2023-04-15'),
+      ends_at: new Date('2023-07-14'),
+      notes: 'Upgraded from Monthly Starter',
+      created_at: new Date('2023-04-15T11:20:00'),
+    },
+    {
+      id: 'sub-005',
+      invoice_number: 'SR-SUB-2023-005',
+      plan_name: 'Quarterly Professional',
+      plan_type: 'QUARTERLY',
+      billing_cycle: 'Jul 2023 – Oct 2023',
+      amount: 1299,
+      tax_amount: 233.82,
+      total_amount: 1532.82,
+      currency: 'INR',
+      payment_method: 'CARD',
+      payment_status: 'PAID',
+      transaction_id: 'card_txn_9e7f5d3b1a',
+      event_type: 'RENEWAL',
+      starts_at: new Date('2023-07-15'),
+      ends_at: new Date('2023-10-14'),
+      created_at: new Date('2023-07-15T00:05:00'),
+    },
+    {
+      id: 'sub-006',
+      invoice_number: 'SR-SUB-2023-006',
+      plan_name: 'Annual Premium',
+      plan_type: 'ANNUAL',
+      billing_cycle: 'Oct 2023 – Oct 2024',
+      amount: 3999,
+      tax_amount: 719.82,
+      total_amount: 4718.82,
+      currency: 'INR',
+      payment_method: 'NETBANKING',
+      payment_status: 'PAID',
+      transaction_id: 'nb_txn_6c2d8e4f0a',
+      event_type: 'UPGRADE',
+      starts_at: new Date('2023-10-15'),
+      ends_at: new Date('2024-10-14'),
+      notes: 'Upgraded to Annual Premium – 33% savings applied',
+      created_at: new Date('2023-10-15T14:45:00'),
+    },
+    {
+      id: 'sub-007',
+      invoice_number: 'SR-SUB-2024-001',
+      plan_name: 'Annual Premium',
+      plan_type: 'ANNUAL',
+      billing_cycle: 'Oct 2024 – Oct 2025',
+      amount: 4499,
+      tax_amount: 809.82,
+      total_amount: 5308.82,
+      currency: 'INR',
+      payment_method: 'UPI',
+      payment_status: 'PAID',
+      transaction_id: 'upi_txn_1a3b5c7d9e',
+      event_type: 'RENEWAL',
+      starts_at: new Date('2024-10-15'),
+      ends_at: new Date('2025-10-14'),
+      notes: 'Auto-renewal – revised pricing applied',
+      created_at: new Date('2024-10-15T00:05:00'),
+    },
+    {
+      id: 'sub-008',
+      invoice_number: 'SR-SUB-2025-001',
+      plan_name: 'Annual Premium',
+      plan_type: 'ANNUAL',
+      billing_cycle: 'Oct 2025 – Oct 2026',
+      amount: 4499,
+      tax_amount: 809.82,
+      total_amount: 5308.82,
+      currency: 'INR',
+      payment_method: 'UPI',
+      payment_status: 'PAID',
+      transaction_id: 'upi_txn_5e7f9a1b3c',
+      event_type: 'RENEWAL',
+      starts_at: new Date('2025-10-15'),
+      ends_at: new Date('2026-10-14'),
+      notes: 'Auto-renewal',
+      created_at: new Date('2025-10-15T00:05:00'),
+    },
+  ];
+
+  for (const sub of subscriptionHistory) {
+    await prisma.subscriptionHistory.upsert({
+      where: { id: sub.id },
+      update: {},
+      create: sub,
+    });
+  }
+  console.log('✅ 8 subscription history records created');
+  console.log('\n🎉 Subscription seed completed!');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Seed failed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

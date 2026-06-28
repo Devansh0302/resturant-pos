@@ -1,0 +1,231 @@
+// Spice Route - Prisma Schema (SQLite Version for Local Dev)
+// Restaurant Billing Application
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Models ──────────────────────────────────────────────────
+
+model Restaurant {
+  id         String   @id @default(cuid())
+  name       String
+  address    String?
+  phone      String?
+  gstin      String?
+  cgst_rate  Float    @default(2.5)
+  sgst_rate  Float    @default(2.5)
+  logo_url              String?
+  subscription_end_date DateTime?
+  subscription_status   String   @default("ACTIVE")
+  
+  swiggy_enabled        Boolean  @default(false)
+  swiggy_api_key        String?
+  zomato_enabled        Boolean  @default(false)
+  zomato_api_key        String?
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@map("restaurants")
+}
+
+model Table {
+  id           String      @id @default(cuid())
+  table_number String      @unique
+  capacity     Int         @default(4)
+  area         String      @default("INDOOR")
+  status         String      @default("AVAILABLE")
+  merged_with_id String?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  merged_with    Table?      @relation("MergedTables", fields: [merged_with_id], references: [id])
+  merged_tables  Table[]     @relation("MergedTables")
+  orders         Order[]
+
+  @@map("tables")
+}
+
+model Category {
+  id         String   @id @default(cuid())
+  name       String
+  sort_order Int      @default(0)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  menu_items MenuItem[]
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id           String   @id @default(cuid())
+  category_id  String
+  name         String
+  description  String?
+  price        Float
+  food_type    String   @default("VEG")
+  is_available Boolean  @default(true)
+  is_deleted   Boolean  @default(false)
+  image_url    String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  category    Category    @relation(fields: [category_id], references: [id])
+  order_items OrderItem[]
+  price_logs  PriceLog[]
+
+  @@map("menu_items")
+}
+
+model PriceLog {
+  id           String   @id @default(cuid())
+  menu_item_id String
+  old_price    Float
+  new_price    Float
+  changed_by   String   // staff name
+  changed_at   DateTime @default(now())
+
+  menu_item MenuItem @relation(fields: [menu_item_id], references: [id])
+
+  @@map("price_logs")
+}
+
+model Staff {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String    // bcrypt hash
+  role      String    @default("WAITER")
+  pin       String    // 4-digit string
+  is_active Boolean   @default(true)
+
+  orders     Order[]
+
+  @@map("staff")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  table_id        String
+  staff_id        String
+  invoice_number  String        @unique
+  guest_count     Int           @default(1)
+  status          String        @default("OPEN")
+  subtotal        Float         @default(0)
+  cgst_amount     Float         @default(0)
+  sgst_amount     Float         @default(0)
+  discount_amount Float         @default(0)
+  total_amount    Float         @default(0)
+  payment_mode    String?
+  payment_status  String        @default("PENDING")
+  paid_at         DateTime?
+  order_type      String        @default("DINE_IN") // DINE_IN, SWIGGY, ZOMATO, TAKEAWAY
+  external_id     String?       // Zomato/Swiggy Order ID
+  notes           String?
+  kot_requested   Boolean       @default(false)
+  bill_requested  Boolean       @default(false)
+  prep_start_time DateTime?
+  prep_end_time   DateTime?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  table       Table       @relation(fields: [table_id], references: [id])
+  staff       Staff       @relation(fields: [staff_id], references: [id])
+  order_items OrderItem[]
+  kot_tickets KOTTicket[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  order_id     String
+  menu_item_id String
+  quantity     Int             @default(1)
+  unit_price   Float           // locked at time of order
+  total_price  Float
+  notes        String?
+  status       String          @default("PENDING")
+  created_at   DateTime        @default(now())
+  updated_at   DateTime        @updatedAt
+
+  order     Order    @relation(fields: [order_id], references: [id])
+  menu_item MenuItem @relation(fields: [menu_item_id], references: [id])
+
+  @@map("order_items")
+}
+
+model KOTTicket {
+  id         String   @id @default(cuid())
+  order_id   String
+  kot_number String
+  items      String   // Stringified JSON array of items
+  printed_at DateTime @default(now())
+
+  order Order @relation(fields: [order_id], references: [id])
+
+  @@map("kot_tickets")
+}
+
+model DailyReport {
+  id              String   @id @default(cuid())
+  report_date     DateTime @unique
+  total_orders    Int      @default(0)
+  total_revenue   Float    @default(0)
+  total_gst       Float    @default(0)
+  cash_collected  Float    @default(0)
+  upi_collected   Float    @default(0)
+  card_collected  Float    @default(0)
+  avg_order_value Float    @default(0)
+  created_at      DateTime @default(now())
+
+  @@map("daily_reports")
+}
+
+
+
+model SubscriptionHistory {
+  id              String   @id @default(cuid())
+  invoice_number  String   @unique
+  plan_name       String                        // e.g. "Monthly Starter", "Annual Premium"
+  plan_type       String   @default("ANNUAL")    // MONTHLY, QUARTERLY, ANNUAL
+  billing_cycle   String?                        // e.g. "Jan 2025 – Jan 2026"
+  amount          Float
+  tax_amount      Float    @default(0)
+  total_amount    Float
+  currency        String   @default("INR")
+  payment_method  String   @default("UPI")       // UPI, CARD, NETBANKING, CASH
+  payment_status  String   @default("PAID")      // PAID, PENDING, FAILED, REFUNDED
+  transaction_id  String?                        // gateway transaction ref
+  razorpay_payment_id String?                    // Razorpay payment ID
+  event_type      String   @default("RENEWAL")   // NEW, RENEWAL, UPGRADE, DOWNGRADE, CANCELLATION, REFUND
+  starts_at       DateTime
+  ends_at         DateTime
+  notes           String?
+  created_at      DateTime @default(now())
+
+  @@map("subscription_history")
+}
+
+model CheckoutSession {
+  id              String   @id @default(cuid())
+  plan_name       String
+  plan_type       String
+  amount          Float
+  tax_amount      Float
+  total_amount    Float
+  status          String   @default("PENDING") // PENDING, PAID, EXPIRED
+  razorpay_order_id String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("checkout_sessions")
+}
