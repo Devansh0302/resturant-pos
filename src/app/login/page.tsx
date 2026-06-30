@@ -36,6 +36,8 @@ export default function LoginPage() {
         const session = await sessionRes.json();
         if (session?.user?.role === 'CHEF') {
           router.push('/kds');
+        } else if (session?.user?.role === 'WAITER') {
+          router.push('/tables');
         } else {
           router.push('/dashboard');
         }
