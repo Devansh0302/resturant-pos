@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/layout/sidebar';
+import { MobileHeader } from '@/components/layout/mobile-header';
 import { NotificationListener } from '@/components/layout/NotificationListener';
 
 import { prisma } from '@/lib/prisma';
@@ -25,17 +26,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen relative" style={{ backgroundColor: '#F9FAFB' }}>
+    <div className="min-h-screen relative flex flex-col" style={{ backgroundColor: '#F9FAFB' }}>
       {daysRemaining >= 0 && daysRemaining <= 7 && (
         <SubscriptionWarningBanner daysRemaining={daysRemaining} />
       )}
+      <MobileHeader />
       <Sidebar />
       <main
-        className="min-h-screen"
-        style={{ 
-          marginLeft: '240px', 
-          padding: '24px 32px'
-        }}
+        className="flex-1 min-h-screen transition-all duration-300 md:ml-[240px] p-4 sm:p-6 md:p-8 w-full md:w-auto"
       >
         <SubscriptionLock isExpired={isExpired}>
           {children}

@@ -22,6 +22,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import Image from 'next/image';
+import { useUIStore } from '@/store/ui-store';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'CASHIER'] },
@@ -38,6 +39,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  const { isMobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [integrationsEnabled, setIntegrationsEnabled] = useState(false);
 
@@ -82,8 +84,19 @@ export function Sidebar() {
   const roleColors = getRoleBadgeColor(session?.user?.role || '');
 
   return (
-    <aside
-      className="fixed left-0 top-0 h-full flex flex-col z-50"
+    <>
+      {/* Mobile Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 h-full flex flex-col z-50 transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       style={{
         width: '240px',
         backgroundColor: '#FFFFFF',
@@ -154,7 +167,10 @@ export function Sidebar() {
           return (
             <button
               key={item.href}
-              onClick={() => router.push(item.href)}
+              onClick={() => {
+                router.push(item.href);
+                setMobileSidebarOpen(false);
+              }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer group"
               style={{
                 backgroundColor: isActive ? '#10B981' : 'transparent',
@@ -245,6 +261,7 @@ export function Sidebar() {
           <span className="font-medium">Logout</span>
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
