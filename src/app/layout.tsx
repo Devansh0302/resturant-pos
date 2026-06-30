@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const lexend = Lexend({
   variable: "--font-heading",
@@ -41,6 +42,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground antialiased" style={{ fontFamily: 'var(--font-sans)' }}>
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
