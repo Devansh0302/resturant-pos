@@ -13,10 +13,20 @@ export async function POST(req: NextRequest) {
     const restaurantId = (session.user as any).restaurantId;
 
     const body = await req.json();
-    const { name, sort_order } = body;
+    const { name, names, sort_order } = body;
+
+    if (names && Array.isArray(names) && names.length > 0) {
+      const data = names.map((n: string, i: number) => ({
+        restaurant_id: restaurantId,
+        name: n,
+        sort_order: (sort_order || 0) + i,
+      }));
+      await prisma.category.createMany({ data });
+      return NextResponse.json({ success: true }, { status: 201 });
+    }
 
     if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Name or names array is required' }, { status: 400 });
     }
 
     const category = await prisma.category.create({

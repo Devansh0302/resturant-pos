@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { UtensilsCrossed, Plus, Pencil, Trash2, History, ChevronDown, ChevronUp, Lock, X, Loader2, BookOpen } from 'lucide-react';
+import { UtensilsCrossed, Plus, Pencil, Trash2, History, ChevronDown, ChevronUp, Lock, X, Loader2, BookOpen, FolderPlus } from 'lucide-react';
 
 export default function MenuPage() {
   const { data: session } = useSession();
@@ -50,6 +50,7 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [newPrice, setNewPrice] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [recipeItem, setRecipeItem] = useState<any>(null);
 
@@ -110,12 +111,20 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold" style={{ color: '#1A1A1A' }}>Menu Items</h2>
         {isAdmin && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-primary"
-          >
-            <Plus className="w-4 h-4" /> Add New Item
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddCategoryModal(true)}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <FolderPlus className="w-4 h-4" /> Add Categories
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn-primary"
+            >
+              <Plus className="w-4 h-4" /> Add New Item
+            </button>
+          </div>
         )}
       </div>
 
@@ -269,6 +278,9 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
 
       {/* Recipe Modal */}
       {recipeItem && <RecipeModal item={recipeItem} onClose={() => setRecipeItem(null)} />}
+
+      {/* Add Categories Modal */}
+      {showAddCategoryModal && <AddBulkCategoryModal onClose={() => setShowAddCategoryModal(false)} onAdded={fetchMenu} />}
 
       {/* Add Item Modal */}
       {showAddModal && <AddItemModal categories={categories} onClose={() => setShowAddModal(false)} onAdded={fetchMenu} />}
@@ -555,6 +567,62 @@ function RecipeModal({ item, onClose }: { item: any; onClose: () => void }) {
           <button onClick={handleSave} disabled={isLoading || isSaving} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center cursor-pointer">
             {isSaving ? 'Saving...' : 'Save Recipe'}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddBulkCategoryModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [categoriesText, setCategoriesText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSave = async () => {
+    const names = categoriesText.split(/[\n,]+/).map(n => n.trim()).filter(n => n.length > 0);
+    if (names.length === 0) { toast.error('Enter at least one category'); return; }
+    
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/menu/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ names }),
+      });
+      if (res.ok) {
+        toast.success(`Created ${names.length} categories`);
+        onAdded();
+        onClose();
+      } else {
+        toast.error('Failed to create categories');
+      }
+    } catch { toast.error('Failed to create categories'); }
+    finally { setIsLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
+      <div className="w-full max-w-sm bg-white rounded-xl shadow-xl overflow-hidden p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-gray-900 text-base font-heading">Add Categories</h3>
+            <p className="text-xs text-gray-500 mt-1">Enter categories separated by comma or new line</p>
+          </div>
+          <button onClick={onClose}><X className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-pointer" /></button>
+        </div>
+        <div className="space-y-4">
+          <textarea
+            value={categoriesText}
+            onChange={(e) => setCategoriesText(e.target.value)}
+            rows={5}
+            placeholder="Starters&#10;Main Course&#10;Beverages"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none resize-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+          />
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-lg text-sm cursor-pointer" style={{ backgroundColor: '#F5F5F3', color: '#6B7280' }}>Cancel</button>
+            <button onClick={handleSave} disabled={isLoading} className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer flex items-center justify-center gap-2" style={{ backgroundColor: '#10B981' }}>
+              {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Save
+            </button>
+          </div>
         </div>
       </div>
     </div>
