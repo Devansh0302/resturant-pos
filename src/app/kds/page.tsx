@@ -227,18 +227,21 @@ export default function KDSPage() {
           id: `item-${Date.now()}-1`,
           quantity: 2,
           notes: Math.random() > 0.5 ? 'Extra spicy please' : null,
+          variant_name: null,
           menu_item: { name: 'Butter Chicken', food_type: 'NON_VEG' },
         },
         {
           id: `item-${Date.now()}-2`,
           quantity: 3,
           notes: null,
+          variant_name: null,
           menu_item: { name: 'Garlic Naan', food_type: 'VEG' },
         },
         {
           id: `item-${Date.now()}-3`,
           quantity: 1,
           notes: 'No ice',
+          variant_name: null,
           menu_item: { name: 'Mango Lassi', food_type: 'VEG' },
         }
       ],

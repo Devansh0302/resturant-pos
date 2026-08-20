@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         category_id,
         food_type: food_type || 'VEG',
         price: parseFloat(price),
-        variants: variants && Array.isArray(variants) ? variants : null,
+        variants: variants && Array.isArray(variants) ? variants : undefined,
         description: description || null,
         is_available: is_available !== false,
       },

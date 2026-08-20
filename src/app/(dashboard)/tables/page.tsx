@@ -215,7 +215,7 @@ export default function TablesPage() {
   const openEditModal = (e: React.MouseEvent, table: TableData) => {
     e.stopPropagation();
     setEditingTable(table);
-    setEditTableNumber(table.original_table_number || table.table_number);
+    setEditTableNumber((table as any).original_table_number || table.table_number);
     setEditTableCapacity(table.capacity.toString());
     setEditTableArea(table.area);
     setIsEditModalOpen(true);

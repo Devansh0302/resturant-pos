@@ -51,7 +51,7 @@ async function main() {
 
   for (const t of tableData) {
     await prisma.table.upsert({
-      where: { table_number: t.table_number },
+      where: { restaurant_id_table_number: { restaurant_id: r1.id, table_number: t.table_number } },
       update: {},
       create: {
         table_number: t.table_number,
@@ -69,7 +69,7 @@ async function main() {
   ];
   for (const t of tableDataR2) {
     await prisma.table.upsert({
-      where: { table_number: t.table_number },
+      where: { restaurant_id_table_number: { restaurant_id: r2.id, table_number: t.table_number } },
       update: {},
       create: {
         table_number: t.table_number,
