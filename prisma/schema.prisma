@@ -53,7 +53,7 @@ model Restaurant {
 
 model Table {
   id             String     @id @default(cuid())
-  table_number   String     @unique
+  table_number   String
   capacity       Int        @default(4)
   area           String     @default("INDOOR")
   status         String     @default("AVAILABLE")
@@ -66,6 +66,7 @@ model Table {
   merged_tables  Table[]    @relation("MergedTables")
   restaurant     Restaurant @relation(fields: [restaurant_id], references: [id])
 
+  @@unique([restaurant_id, table_number])
   @@map("tables")
 }
 
