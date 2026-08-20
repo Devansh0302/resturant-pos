@@ -89,6 +89,7 @@ model MenuItem {
   name          String
   description   String?
   price         Float
+  variants      Json?
   food_type     String      @default("VEG")
   is_available  Boolean     @default(true)
   is_deleted    Boolean     @default(false)
@@ -177,6 +178,7 @@ model OrderItem {
   unit_price    Float
   total_price   Float
   notes         String?
+  variant_name  String?
   status        String     @default("PENDING")
   restaurant_id String
   created_at    DateTime   @default(now())

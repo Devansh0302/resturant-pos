@@ -39,6 +39,7 @@ export interface MenuItemWithCategory {
     id: string;
     name: string;
   };
+  variants?: any[] | null;
 }
 
 export interface TableWithOrder {
@@ -74,6 +75,7 @@ export interface OrderItemInCart {
   unit_price: number;
   total_price: number;
   notes?: string;
+  variant_name?: string | null;
 }
 
 export interface BillData {

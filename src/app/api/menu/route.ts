@@ -28,6 +28,7 @@ export async function GET() {
             is_available: true,
             image_url: true,
             category_id: true,
+            variants: true,
           },
         },
       },
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
     const restaurantId = (session.user as any).restaurantId;
 
     const body = await req.json();
-    const { name, category_id, food_type, price, description, is_available } = body;
+    const { name, category_id, food_type, price, description, is_available, variants } = body;
 
     if (!name || !category_id || !price || price <= 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
         category_id,
         food_type: food_type || 'VEG',
         price: parseFloat(price),
+        variants: variants && Array.isArray(variants) ? variants : null,
         description: description || null,
         is_available: is_available !== false,
       },

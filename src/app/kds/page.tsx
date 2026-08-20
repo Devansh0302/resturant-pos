@@ -23,6 +23,7 @@ interface Order {
     id: string;
     quantity: number;
     notes: string | null;
+    variant_name: string | null;
     menu_item: { name: string; food_type: string };
   }[];
 }
@@ -462,7 +463,9 @@ export default function KDSPage() {
                         <div className="space-y-1.5 border-t border-gray-100 pt-2">
                           {histOrder.order_items.map(item => (
                             <div key={item.id} className="flex justify-between items-center text-xs">
-                              <span className="font-semibold text-gray-700">{item.menu_item.name}</span>
+                              <span className="font-semibold text-gray-700">
+                                {item.menu_item.name} {item.variant_name && `(${item.variant_name})`}
+                              </span>
                               <span className="font-black text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded">x{item.quantity}</span>
                             </div>
                           ))}
@@ -620,6 +623,9 @@ export default function KDSPage() {
                             <div className="flex items-start justify-between gap-2">
                               <p className="text-base font-bold text-gray-900 leading-tight">
                                 {item.menu_item.name}
+                                {item.variant_name && (
+                                  <span className="text-sm font-medium text-gray-500 ml-1 block mt-0.5">({item.variant_name})</span>
+                                )}
                               </p>
                               <span className="text-lg font-black font-mono text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md shadow-sm flex-shrink-0 leading-none">
                                 x{item.quantity}

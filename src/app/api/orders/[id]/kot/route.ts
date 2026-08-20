@@ -40,6 +40,7 @@ export async function POST(
         kot_number,
         items: JSON.stringify(pendingItems.map(item => ({
           name: item.menu_item.name,
+          variant_name: item.variant_name || null,
           quantity: item.quantity,
           food_type: item.menu_item.food_type,
           notes: item.notes,

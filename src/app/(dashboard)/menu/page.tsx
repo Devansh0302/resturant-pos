@@ -71,7 +71,10 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
       const res = await fetch(`/api/menu/${editingItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ price: parseFloat(newPrice) }),
+        body: JSON.stringify({
+          price: parseFloat(newPrice),
+          variants: editingItem.variants?.map((v: any) => ({ name: v.name, price: parseFloat(v.price) })) || null
+        }),
       });
       if (res.ok) {
         toast.success(`Price updated from ₹${editingItem.price} to ₹${newPrice}`);
@@ -256,7 +259,7 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
           <div className="w-full max-w-sm rounded-xl p-6" style={{ backgroundColor: '#FFFFFF' }}>
             <h3 className="text-base font-bold mb-4" style={{ fontFamily: 'var(--font-heading)' }}>Edit Price</h3>
             <p className="text-sm mb-1" style={{ color: '#1A1A1A' }}>{editingItem.name}</p>
-            <p className="text-xs mb-4" style={{ color: '#6B7280' }}>Current: ₹{editingItem.price}</p>
+            <p className="text-xs mb-4" style={{ color: '#6B7280' }}>Current Base: ₹{editingItem.price}</p>
             <div className="relative mb-4">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#6B7280' }}>₹</span>
               <input
@@ -268,6 +271,60 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
                 min="1"
               />
             </div>
+
+            <div className="mb-2 mt-4 flex items-center justify-between">
+              <label className="text-xs font-bold block" style={{ color: '#1A1A1A' }}>Variants</label>
+              <button 
+                type="button" 
+                onClick={() => {
+                  const currVariants = editingItem.variants || [];
+                  setEditingItem({ ...editingItem, variants: [...currVariants, { name: '', price: '' }] });
+                }}
+                className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded cursor-pointer"
+              >
+                + Add Variant
+              </button>
+            </div>
+            
+            {editingItem.variants && editingItem.variants.length > 0 && (
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
+                {editingItem.variants.map((variant: any, index: number) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <input
+                      placeholder="Name"
+                      value={variant.name}
+                      onChange={(e) => {
+                        const newV = [...editingItem.variants];
+                        newV[index].name = e.target.value;
+                        setEditingItem({ ...editingItem, variants: newV });
+                      }}
+                      className="flex-1 px-3 py-2 rounded text-sm outline-none border border-gray-200"
+                    />
+                    <input
+                      placeholder="₹ Price"
+                      type="number"
+                      value={variant.price}
+                      onChange={(e) => {
+                        const newV = [...editingItem.variants];
+                        newV[index].price = e.target.value;
+                        setEditingItem({ ...editingItem, variants: newV });
+                      }}
+                      className="w-24 px-3 py-2 rounded text-sm outline-none border border-gray-200 font-mono"
+                    />
+                    <button 
+                      onClick={() => {
+                        const newV = editingItem.variants.filter((_: any, i: number) => i !== index);
+                        setEditingItem({ ...editingItem, variants: newV.length > 0 ? newV : null });
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button onClick={() => setEditingItem(null)} className="flex-1 py-2 rounded-lg text-sm cursor-pointer" style={{ backgroundColor: '#F5F5F3', color: '#6B7280' }}>Cancel</button>
               <button onClick={handlePriceUpdate} className="flex-1 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer" style={{ backgroundColor: '#10B981' }}>Update Price</button>
@@ -337,6 +394,7 @@ function AddItemModal({ categories: initialCategories, onClose, onAdded }: { cat
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [localCategories, setLocalCategories] = useState<any[]>(initialCategories);
+  const [variants, setVariants] = useState<{name: string, price: string}[]>([]);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) { toast.error('Enter a category name'); return; }
@@ -368,7 +426,14 @@ function AddItemModal({ categories: initialCategories, onClose, onAdded }: { cat
       const res = await fetch('/api/menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, category_id: categoryId, food_type: foodType, price: parseFloat(price), description }),
+        body: JSON.stringify({
+          name,
+          category_id: categoryId,
+          food_type: foodType,
+          price: parseFloat(price),
+          description,
+          variants: variants.length > 0 ? variants.map(v => ({ name: v.name, price: parseFloat(v.price) })) : null
+        }),
       });
       if (res.ok) {
         toast.success(`${name} added to menu`);
@@ -450,11 +515,59 @@ function AddItemModal({ categories: initialCategories, onClose, onAdded }: { cat
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Price *</label>
-            <div className="relative">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium block" style={{ color: '#6B7280' }}>Base Price *</label>
+            </div>
+            <div className="relative mb-3">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#6B7280' }}>₹</span>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full pl-8 pr-4 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB', fontFamily: 'var(--font-mono)' }} min="1" />
             </div>
+            
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-xs font-medium block" style={{ color: '#6B7280' }}>Variants (e.g., Half / Full)</label>
+              <button 
+                type="button" 
+                onClick={() => setVariants([...variants, { name: '', price: '' }])}
+                className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded cursor-pointer"
+              >
+                + Add Variant
+              </button>
+            </div>
+            {variants.length > 0 && (
+              <div className="space-y-2 mb-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                {variants.map((variant, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <input
+                      placeholder="Name (e.g. 4 pcs)"
+                      value={variant.name}
+                      onChange={(e) => {
+                        const newV = [...variants];
+                        newV[index].name = e.target.value;
+                        setVariants(newV);
+                      }}
+                      className="flex-1 px-3 py-1.5 rounded text-xs outline-none border border-gray-200"
+                    />
+                    <input
+                      placeholder="₹ Price"
+                      type="number"
+                      value={variant.price}
+                      onChange={(e) => {
+                        const newV = [...variants];
+                        newV[index].price = e.target.value;
+                        setVariants(newV);
+                      }}
+                      className="w-20 px-3 py-1.5 rounded text-xs outline-none border border-gray-200 font-mono"
+                    />
+                    <button 
+                      onClick={() => setVariants(variants.filter((_, i) => i !== index))}
+                      className="p-1.5 text-gray-400 hover:text-red-500 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Description (optional)</label>

@@ -23,6 +23,7 @@ interface MenuItem {
   food_type: 'VEG' | 'NON_VEG';
   is_available: boolean;
   category: { id: string; name: string };
+  variants?: { name: string, price: number }[] | null;
 }
 
 interface Category {
@@ -58,6 +59,7 @@ export default function OrderPage() {
   const [customerName, setCustomerName] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isPrintingKOT, setIsPrintingKOT] = useState(false);
+  const [selectedItemForVariant, setSelectedItemForVariant] = useState<MenuItem | null>(null);
 
   const subtotal = getSubtotal();
   const gst = calculateGST(subtotal);
@@ -119,6 +121,7 @@ export default function OrderPage() {
           unit_price: oi.unit_price,
           total_price: oi.total_price,
           notes: oi.notes,
+          variant_name: oi.variant_name,
         }));
         setItemsFromAPI(mappedItems);
       } else {
@@ -135,13 +138,15 @@ export default function OrderPage() {
     }
   };
 
-  const handleAddItem = (menuItem: MenuItem) => {
+  const handleAddItem = (menuItem: MenuItem, variant?: { name: string, price: number }) => {
     addItem({
       menu_item_id: menuItem.id,
-      name: menuItem.name,
+      name: variant ? `${menuItem.name} (${variant.name})` : menuItem.name,
       food_type: menuItem.food_type,
-      unit_price: menuItem.price,
+      unit_price: variant ? variant.price : menuItem.price,
+      variant_name: variant ? variant.name : null,
     });
+    setSelectedItemForVariant(null);
   };
 
   const saveOrder = useCallback(async () => {
@@ -161,6 +166,7 @@ export default function OrderPage() {
               quantity: i.quantity,
               unit_price: i.unit_price,
               notes: i.notes,
+              variant_name: i.variant_name,
             })),
             notes,
             guest_count: guestCount,
@@ -180,6 +186,7 @@ export default function OrderPage() {
               quantity: i.quantity,
               unit_price: i.unit_price,
               notes: i.notes,
+              variant_name: i.variant_name,
             })),
             notes,
           }),
@@ -443,7 +450,7 @@ export default function OrderPage() {
                     >
                       ₹{item.price}
                     </span>
-                    {qty > 0 ? (
+                    {qty > 0 && !(item.variants && item.variants.length > 0) ? (
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => updateQuantity(item.id, qty - 1)}
@@ -466,7 +473,13 @@ export default function OrderPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleAddItem(item)}
+                        onClick={() => {
+                          if (item.variants && item.variants.length > 0) {
+                            setSelectedItemForVariant(item);
+                          } else {
+                            handleAddItem(item);
+                          }
+                        }}
                         disabled={!item.is_available}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${item.is_available ? 'cursor-pointer' : 'cursor-not-allowed'}`}
                         style={{ 
@@ -475,7 +488,7 @@ export default function OrderPage() {
                           border: `1px solid ${item.is_available ? '#D1FAE5' : '#E5E7EB'}` 
                         }}
                       >
-                        {item.is_available ? 'Add' : 'Unavailable'}
+                        {item.is_available ? (item.variants && item.variants.length > 0 ? 'Options' : 'Add') : 'Unavailable'}
                       </button>
                     )}
                   </div>
@@ -550,7 +563,7 @@ export default function OrderPage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => updateQuantity(item.menu_item_id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.menu_item_id, item.quantity - 1, item.variant_name)}
                       className="w-6 h-6 rounded flex items-center justify-center cursor-pointer"
                       style={{ backgroundColor: '#F3F4F6' }}
                     >
@@ -560,7 +573,7 @@ export default function OrderPage() {
                       {item.quantity}
                     </span>
                     <button
-                      onClick={() => updateQuantity(item.menu_item_id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.menu_item_id, item.quantity + 1, item.variant_name)}
                       className="w-6 h-6 rounded flex items-center justify-center cursor-pointer"
                       style={{ backgroundColor: '#F3F4F6' }}
                     >
@@ -574,7 +587,7 @@ export default function OrderPage() {
                     ₹{item.total_price}
                   </span>
                   <button
-                    onClick={() => removeItem(item.menu_item_id)}
+                    onClick={() => removeItem(item.menu_item_id, item.variant_name)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
                     style={{ color: '#EF4444' }}
                   >
@@ -940,6 +953,70 @@ export default function OrderPage() {
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+      {/* Variant Selection Modal */}
+      {selectedItemForVariant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white rounded-xl p-6 shadow-xl relative">
+            <button
+              onClick={() => setSelectedItemForVariant(null)}
+              className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="text-lg font-bold mb-1" style={{ color: '#1A1A1A', fontFamily: 'var(--font-heading)' }}>
+              Select Option
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">{selectedItemForVariant.name}</p>
+
+            <div className="space-y-3">
+              {selectedItemForVariant.variants?.map((variant: any, idx: number) => {
+                const qty = getItemQuantity(selectedItemForVariant.id, variant.name);
+                return (
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#1A1A1A' }}>{variant.name}</p>
+                      <p className="text-xs" style={{ color: '#6B7280', fontFamily: 'var(--font-mono)' }}>₹{variant.price}</p>
+                    </div>
+                    {qty > 0 ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(selectedItemForVariant.id, qty - 1, variant.name)}
+                          className="w-7 h-7 rounded bg-red-50 text-red-500 flex items-center justify-center cursor-pointer"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-sm font-semibold w-5 text-center font-mono">{qty}</span>
+                        <button
+                          onClick={() => updateQuantity(selectedItemForVariant.id, qty + 1, variant.name)}
+                          className="w-7 h-7 rounded bg-green-50 text-green-600 flex items-center justify-center cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleAddItem(selectedItemForVariant, variant)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-green-600 hover:bg-green-700 cursor-pointer transition-colors"
+                      >
+                        Add
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="mt-5 text-center">
+              <button 
+                onClick={() => setSelectedItemForVariant(null)} 
+                className="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

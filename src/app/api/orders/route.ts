@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
                 quantity: i.quantity,
                 unit_price: i.unit_price,
                 total_price: i.quantity * i.unit_price,
+                notes: i.notes,
+                variant_name: i.variant_name || null,
               })),
             }
           : undefined,

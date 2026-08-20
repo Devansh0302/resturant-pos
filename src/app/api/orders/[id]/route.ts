@@ -53,6 +53,7 @@ export async function PATCH(
           unit_price: i.unit_price,
           total_price: i.quantity * i.unit_price,
           notes: i.notes || null,
+          variant_name: i.variant_name || null,
           status: statusMap.get(i.menu_item_id) || 'PENDING'
         })),
       });

@@ -56,11 +56,21 @@ export async function PATCH(
       return NextResponse.json(updated);
     }
 
-    // Availability toggle
+    // Update availability
     if (body.is_available !== undefined) {
       const updated = await prisma.menuItem.update({
         where: { id },
         data: { is_available: body.is_available },
+      });
+      return NextResponse.json(updated);
+    }
+
+    // Update variants
+    if (body.variants !== undefined) {
+      if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      const updated = await prisma.menuItem.update({
+        where: { id },
+        data: { variants: Array.isArray(body.variants) ? body.variants : null },
       });
       return NextResponse.json(updated);
     }
