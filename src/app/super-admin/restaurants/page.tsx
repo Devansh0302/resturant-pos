@@ -238,8 +238,7 @@ const AddTenantModal = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                   </div>
                 </div>
               )}
-
-
+            </div>
 
             {/* Fixed Footer with Total */}
             <div className="border-t border-gray-100 bg-gray-50/95 p-5 flex-shrink-0 z-10 relative">
