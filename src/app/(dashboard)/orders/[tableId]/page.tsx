@@ -235,6 +235,7 @@ export default function OrderPage() {
       const res = await fetch(`/api/orders/${orderId}/bill`, { method: 'POST' });
       if (res.ok) {
         setShowBillModal(true);
+        // Removed auto-print to allow user to select payment mode and confirm first
       } else {
         toast.error('Failed to generate bill');
       }
@@ -283,6 +284,7 @@ export default function OrderPage() {
         setShowBillModal(false);
         clearOrder();
         router.push('/tables');
+        router.refresh();
       } else {
         toast.error('Payment failed');
       }
@@ -316,7 +318,7 @@ export default function OrderPage() {
   };
 
   const handleWhatsApp = () => {
-    const text = `*SPICE ROUTE*%0AMG Road, Jaipur%0A%0ATable: ${tableInfo?.table_number}%0AGuests: ${guestCount}%0A%0A${items.map(i => `${i.name} x${i.quantity} - ₹${i.total_price}`).join('%0A')}%0A%0ASubtotal: ₹${subtotal.toFixed(2)}%0ACGST 2.5%: ₹${gst.cgst.toFixed(2)}%0ASGST 2.5%: ₹${gst.sgst.toFixed(2)}%0A*Total: ₹${gst.total.toFixed(2)}*%0A%0AThank you for dining with us!`;
+    const text = `*NXTDINE*%0AMG Road, Jaipur%0A%0ATable: ${tableInfo?.table_number}%0AGuests: ${guestCount}%0A%0A${items.map(i => `${i.name} x${i.quantity} - ₹${i.total_price}`).join('%0A')}%0A%0ASubtotal: ₹${subtotal.toFixed(2)}%0ACGST 2.5%: ₹${gst.cgst.toFixed(2)}%0ASGST 2.5%: ₹${gst.sgst.toFixed(2)}%0A*Total: ₹${gst.total.toFixed(2)}*%0A%0AThank you for dining with us!`;
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
@@ -673,7 +675,7 @@ export default function OrderPage() {
             {/* Print Area */}
             <div className="print-area">
               <div className="text-center p-5 pb-3">
-                <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)' }}>SPICE ROUTE</h2>
+                <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)' }}>NXTDINE</h2>
                 <p className="text-xs" style={{ color: '#6B7280' }}>MG Road, Jaipur</p>
                 <p className="text-xs" style={{ color: '#6B7280' }}>GSTIN: 08ABCDE1234F1Z5</p>
                 <p className="text-xs" style={{ color: '#6B7280' }}>Ph: +91 98765 43210</p>

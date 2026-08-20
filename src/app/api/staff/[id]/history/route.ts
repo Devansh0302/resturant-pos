@@ -71,7 +71,7 @@ export async function GET(
       recentOrders: recentOrders.map(order => ({
         id: order.id,
         invoice_number: order.invoice_number,
-        table_number: order.table.table_number,
+        table_number: order.table?.table_number || (order.order_type === 'TAKEAWAY' ? 'Takeaway' : 'Online'),
         status: order.status,
         total_amount: order.total_amount,
         created_at: order.created_at,

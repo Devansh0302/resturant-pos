@@ -7,7 +7,15 @@ import bcrypt from 'bcryptjs';
 // GET /api/staff - Get all staff
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const where = { restaurant_id: (session.user as any).restaurantId || null };
+
     const staff = await prisma.staff.findMany({
+      where,
       select: { 
         id: true, 
         name: true, 
@@ -39,6 +47,22 @@ export async function POST(req: NextRequest) {
     const { name, email, password, role, pin } = body;
     const targetRole = role || 'WAITER';
 
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: (session.user as any).restaurantId }
+    });
+
+    if (!restaurant) {
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+
+    const currentStaffCount = await prisma.staff.count({
+      where: { restaurant_id: (session.user as any).restaurantId }
+    });
+
+    if (currentStaffCount >= (restaurant.max_staff_profiles || 5)) {
+      return NextResponse.json({ error: `You have reached the limit of ${restaurant.max_staff_profiles} staff profiles for your plan. Please contact Super Admin to upgrade.` }, { status: 403 });
+    }
+
     if (targetRole === 'ADMIN') {
       const count = await prisma.staff.count({
         where: { role: 'ADMIN', is_active: true }
@@ -58,7 +82,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(password || 'password123', 12);
 
     const staff = await prisma.staff.create({
-      data: { name, email, password: hashedPassword, role: role || 'WAITER', pin: pin || '0000' },
+      data: { name, email, password: hashedPassword, role: role || 'WAITER', pin: pin || '0000', restaurant_id: (session.user as any).restaurantId },
       select: { id: true, name: true, email: true, role: true, is_active: true },
     });
 
@@ -81,6 +105,11 @@ export async function PATCH(req: NextRequest) {
 
     const staffBeingUpdated = await prisma.staff.findUnique({ where: { id } });
     if (!staffBeingUpdated) return NextResponse.json({ error: 'Staff not found' }, { status: 404 });
+    
+    // Security check: ensure the staff belongs to the admin's restaurant
+    if (staffBeingUpdated.restaurant_id !== (session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     
     if (staffBeingUpdated.role === 'ADMIN' && data.role && data.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Cannot downgrade the only ADMIN account' }, { status: 400 });
@@ -140,6 +169,13 @@ export async function DELETE(req: NextRequest) {
 
     if (id === session.user.id) {
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
+    }
+
+    const staffBeingDeleted = await prisma.staff.findUnique({ where: { id } });
+    if (!staffBeingDeleted) return NextResponse.json({ error: 'Staff not found' }, { status: 404 });
+
+    if (staffBeingDeleted.restaurant_id !== (session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     await prisma.staff.delete({

@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/bills - Get all paid bills
 export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
     const where: any = {
+      restaurant_id: restaurantId,
       status: { in: ['PAID', 'BILLED'] },
     };
 
     if (search) {
-      where.invoice_number = { contains: search, mode: 'insensitive' };
+      where.invoice_number = { endsWith: search, mode: 'insensitive' };
     }
 
     if (from || to) {
@@ -36,14 +45,14 @@ export async function GET(req: NextRequest) {
     const result = bills.map(bill => ({
       id: bill.id,
       invoice_number: bill.invoice_number,
-      table_number: bill.table.table_number,
+      table_number: bill.table?.table_number || bill.order_type || 'Unknown',
       date: bill.paid_at || bill.created_at,
       items_count: bill.order_items.length,
       subtotal: bill.subtotal,
       gst: bill.cgst_amount + bill.sgst_amount,
       total: bill.total_amount,
       payment_mode: bill.payment_mode,
-      staff_name: bill.staff.name,
+      staff_name: bill.staff?.name || 'Unknown',
       status: bill.status,
     }));
 

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import CheckoutClient from './CheckoutClient';
-
-const prisma = new PrismaClient();
 
 export default async function CheckoutPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;

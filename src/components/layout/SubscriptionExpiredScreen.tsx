@@ -35,12 +35,12 @@ export function SubscriptionExpiredScreen() {
             </div>
           </a>
 
-          <a href="mailto:support@spiceroute.in" className="flex items-center gap-3 text-gray-700 hover:text-red-600 transition-colors">
+          <a href="mailto:support@nxtdine.in" className="flex items-center gap-3 text-gray-700 hover:text-red-600 transition-colors">
             <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center shrink-0">
               <Mail className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold">support@spiceroute.in</p>
+              <p className="text-sm font-semibold">support@nxtdine.in</p>
               <p className="text-xs text-gray-500">We typically reply within 2 hours</p>
             </div>
           </a>

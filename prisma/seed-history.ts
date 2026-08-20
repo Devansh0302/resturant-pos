@@ -5,7 +5,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding Staff History data...\n');
 
-  const staffList = await prisma.staff.findMany();
+  // Get all active staff who have a restaurant_id
+  const staffList = await prisma.staff.findMany({
+    where: { 
+      is_active: true,
+      restaurant_id: { not: null }
+    }
+  });
+
   if (staffList.length === 0) {
     console.log('No staff found. Please run regular seed first.');
     return;
@@ -43,10 +50,24 @@ async function main() {
       const sgst = subtotal * 0.025;
       const total = subtotal + cgst + sgst;
 
+      const restaurantMenuItems = await prisma.menuItem.findMany({
+        where: { restaurant_id: staff.restaurant_id! },
+        take: 3
+      });
+
+      const orderItems = restaurantMenuItems.map((item, index) => ({
+        menu_item_id: item.id,
+        quantity: index + 1,
+        unit_price: item.price,
+        total_price: item.price * (index + 1),
+        restaurant_id: staff.restaurant_id!
+      }));
+
       await prisma.order.create({
         data: {
           table_id: table.id,
           staff_id: staff.id,
+          restaurant_id: staff.restaurant_id!,
           invoice_number: `SR-H-${Math.floor(Math.random() * 1000000)}`,
           guest_count: Math.floor(Math.random() * 4) + 1,
           status: 'PAID',
@@ -54,7 +75,13 @@ async function main() {
           cgst_amount: cgst,
           sgst_amount: sgst,
           total_amount: total,
+          payment_mode: ['CASH', 'UPI', 'CARD'][Math.floor(Math.random() * 3)],
+          payment_status: 'PAID',
           created_at: orderDate,
+          paid_at: orderDate,
+          order_items: {
+            create: orderItems
+          }
         }
       });
     }

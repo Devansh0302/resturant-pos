@@ -43,7 +43,7 @@ export default function BillsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `spice-route-bills-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `nxtdine-bills-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
   };
 

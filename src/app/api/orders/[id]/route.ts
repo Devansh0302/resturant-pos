@@ -19,16 +19,22 @@ export async function PATCH(
         include: { table: true },
       });
 
-      await prisma.table.update({
-        where: { id: order.table_id },
-        data: { status: 'AVAILABLE' },
-      });
+      if (order.table_id) {
+        await prisma.table.update({
+          where: { id: order.table_id },
+          data: { status: 'AVAILABLE' },
+        });
+      }
 
       return NextResponse.json(order);
     }
 
     // Update items
     if (body.items) {
+      // Fetch existing order to get restaurant_id
+      const orderRecord = await prisma.order.findUnique({ where: { id }, select: { restaurant_id: true } });
+      if (!orderRecord) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+
       // Fetch existing to preserve status
       const existingItems = await prisma.orderItem.findMany({ where: { order_id: id } });
       const statusMap = new Map();
@@ -41,6 +47,7 @@ export async function PATCH(
       await prisma.orderItem.createMany({
         data: body.items.map((i: any) => ({
           order_id: id,
+          restaurant_id: orderRecord.restaurant_id,
           menu_item_id: i.menu_item_id,
           quantity: i.quantity,
           unit_price: i.unit_price,

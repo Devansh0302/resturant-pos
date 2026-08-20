@@ -6,13 +6,33 @@ import { prisma } from '@/lib/prisma';
 import { SubscriptionWarningBanner } from '@/components/layout/SubscriptionWarningBanner';
 import { SubscriptionExpiredScreen } from '@/components/layout/SubscriptionExpiredScreen';
 import { SubscriptionLock } from '@/components/layout/SubscriptionLock';
+import { ImpersonationBanner } from '@/components/layout/ImpersonationBanner';
+import { LiveBroadcastBanner } from '@/components/layout/LiveBroadcastBanner';
+
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import QuickTour from '@/components/onboarding/QuickTour';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const restaurant = await prisma.restaurant.findFirst();
+  const session = await getServerSession(authOptions);
+  const userRestaurantId = (session?.user as any)?.restaurantId;
+  const impersonatedBy = (session?.user as any)?.impersonatedBy;
+  const impersonatedByName = (session?.user as any)?.impersonatedByName || 'Super Admin';
+  const role = (session?.user as any)?.role;
+  const hasSeenTour = (session?.user as any)?.has_seen_tour;
+
+  let restaurant = null;
+  try {
+    if (userRestaurantId) {
+      restaurant = await prisma.restaurant.findUnique({ where: { id: userRestaurantId } });
+    }
+  } catch (err) {
+    console.error('Failed to fetch restaurant in layout (DB connection issue):', err);
+  }
   const today = new Date();
   const endDate = restaurant?.subscription_end_date ? new Date(restaurant.subscription_end_date) : null;
   
@@ -22,12 +42,27 @@ export default async function DashboardLayout({
   if (endDate) {
     const diffTime = endDate.getTime() - today.getTime();
     daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    isExpired = daysRemaining < 0 || restaurant?.subscription_status === 'EXPIRED';
+    isExpired = daysRemaining < 0 || restaurant?.subscription_status === 'EXPIRED' || restaurant?.subscription_status === 'SUSPENDED';
   }
 
+  // Live broadcasts are now fetched dynamically on the client via LiveBroadcastBanner
+
   return (
-    <div className="min-h-screen relative flex flex-col" style={{ backgroundColor: '#F9FAFB' }}>
-      {daysRemaining >= 0 && daysRemaining <= 7 && (
+    <div className="min-h-screen relative flex flex-col bg-background">
+      {restaurant?.theme_color && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root {
+            --color-primary: ${restaurant.theme_color};
+            --color-accent: ${restaurant.theme_color};
+            --color-ring: ${restaurant.theme_color};
+          }
+        `}} />
+      )}
+      {impersonatedBy && restaurant && (
+        <ImpersonationBanner restaurantName={restaurant.name} impersonatorName={impersonatedByName} />
+      )}
+      <LiveBroadcastBanner />
+      {daysRemaining >= 0 && daysRemaining <= 7 && !impersonatedBy && (
         <SubscriptionWarningBanner daysRemaining={daysRemaining} />
       )}
       <MobileHeader />
@@ -40,6 +75,7 @@ export default async function DashboardLayout({
         </SubscriptionLock>
       </main>
       <NotificationListener />
+      {role === 'ADMIN' && <QuickTour initialHasSeenTour={hasSeenTour || false} />}
     </div>
   );
 }

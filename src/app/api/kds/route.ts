@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -9,10 +7,24 @@ export async function GET() {
     // and are not yet fully paid or cancelled
     const orders = await prisma.order.findMany({
       where: {
-        kot_requested: true,
         status: {
           in: ['OPEN', 'PREPARING', 'READY'],
         },
+        OR: [
+          { kot_requested: true },
+          {
+            kot_tickets: {
+              some: {}
+            }
+          },
+          {
+            order_items: {
+              some: {
+                status: 'IN_KITCHEN'
+              }
+            }
+          }
+        ]
       },
       include: {
         table: true,

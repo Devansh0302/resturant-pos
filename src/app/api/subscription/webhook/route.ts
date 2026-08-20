@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
 
 function generateInvoiceNumber() {
   return `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;

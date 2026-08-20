@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { UtensilsCrossed, Plus, Pencil, Trash2, History, ChevronDown, ChevronUp, Lock, X, Loader2 } from 'lucide-react';
+import { UtensilsCrossed, Plus, Pencil, Trash2, History, ChevronDown, ChevronUp, Lock, X, Loader2, BookOpen } from 'lucide-react';
 
 export default function MenuPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN';
   const isStaff = session?.user?.role === 'WAITER' || session?.user?.role === 'CASHIER';
 
   if (!isAdmin && !isStaff) {
@@ -51,6 +51,7 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
   const [newPrice, setNewPrice] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [recipeItem, setRecipeItem] = useState<any>(null);
 
   useEffect(() => { fetchMenu(); }, []);
 
@@ -194,6 +195,14 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
+                              onClick={() => setRecipeItem(item)}
+                              className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[#F5F5F3]"
+                              style={{ color: '#8B5CF6' }}
+                              title="Manage Recipe"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                            </button>
+                            <button
                               onClick={() => { setEditingItem(item); setNewPrice(item.price.toString()); }}
                               className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[#F5F5F3]"
                               style={{ color: '#6B7280' }}
@@ -258,6 +267,9 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
         </div>
       )}
 
+      {/* Recipe Modal */}
+      {recipeItem && <RecipeModal item={recipeItem} onClose={() => setRecipeItem(null)} />}
+
       {/* Add Item Modal */}
       {showAddModal && <AddItemModal categories={categories} onClose={() => setShowAddModal(false)} onAdded={fetchMenu} />}
     </div>
@@ -302,13 +314,40 @@ function PriceHistory() {
   );
 }
 
-function AddItemModal({ categories, onClose, onAdded }: { categories: any[]; onClose: () => void; onAdded: () => void }) {
+function AddItemModal({ categories: initialCategories, onClose, onAdded }: { categories: any[]; onClose: () => void; onAdded: () => void }) {
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [foodType, setFoodType] = useState('VEG');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [localCategories, setLocalCategories] = useState<any[]>(initialCategories);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) { toast.error('Enter a category name'); return; }
+    setIsCreatingCategory(true);
+    try {
+      const res = await fetch('/api/menu/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCategoryName.trim(), sort_order: localCategories.length + 1 }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setLocalCategories(prev => [...prev, { id: created.id, name: created.name, items: [] }]);
+        setCategoryId(created.id);
+        setNewCategoryName('');
+        setShowNewCategory(false);
+        toast.success(`Category "${created.name}" created`);
+      } else {
+        toast.error('Failed to create category');
+      }
+    } catch { toast.error('Failed to create category'); }
+    finally { setIsCreatingCategory(false); }
+  };
 
   const handleSave = async () => {
     if (!name || !categoryId || !price) { toast.error('Fill required fields'); return; }
@@ -341,11 +380,52 @@ function AddItemModal({ categories, onClose, onAdded }: { categories: any[]; onC
             <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }} />
           </div>
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Category *</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }}>
-              <option value="">Select category</option>
-              {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium block" style={{ color: '#6B7280' }}>Category *</label>
+              {!showNewCategory && (
+                <button
+                  type="button"
+                  onClick={() => setShowNewCategory(true)}
+                  className="flex items-center gap-1 text-xs font-bold cursor-pointer transition-colors bg-green-50 px-2 py-1 rounded-md"
+                  style={{ color: '#10B981' }}
+                >
+                  <Plus className="w-3.5 h-3.5" /> New Category
+                </button>
+              )}
+            </div>
+            {!showNewCategory ? (
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ border: '1px solid #E5E7EB' }}>
+                <option value="">Select category</option>
+                {localCategories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g. Starters, Beverages"
+                  className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+                  style={{ border: '1px solid #10B981' }}
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
+                />
+                <button
+                  onClick={handleCreateCategory}
+                  disabled={isCreatingCategory}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold text-white cursor-pointer flex items-center gap-1"
+                  style={{ backgroundColor: '#10B981' }}
+                >
+                  {isCreatingCategory ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Add'}
+                </button>
+                <button
+                  onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+                  className="p-2 rounded-lg cursor-pointer"
+                  style={{ color: '#6B7280' }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: '#6B7280' }}>Food Type</label>
@@ -374,6 +454,107 @@ function AddItemModal({ categories, onClose, onAdded }: { categories: any[]; onC
               {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Add Item
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecipeModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [recipe, setRecipe] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/inventory').then(r => r.json()),
+      fetch(`/api/recipes?menu_item_id=${item.id}`).then(r => r.json())
+    ]).then(([mats, rec]) => {
+      setMaterials(mats);
+      setRecipe(rec.map((r: any) => ({ raw_material_id: r.raw_material_id, quantity_needed: r.quantity_needed })));
+      setIsLoading(false);
+    });
+  }, [item.id]);
+
+  const addIngredient = () => setRecipe([...recipe, { raw_material_id: '', quantity_needed: 1 }]);
+
+  const updateIngredient = (index: number, field: string, val: any) => {
+    const newR = [...recipe];
+    newR[index][field] = val;
+    setRecipe(newR);
+  };
+
+  const removeIngredient = (index: number) => {
+    setRecipe(recipe.filter((_, i) => i !== index));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menu_item_id: item.id, ingredients: recipe.filter(r => r.raw_material_id) }),
+      });
+      if (res.ok) {
+        toast.success('Recipe updated successfully');
+        onClose();
+      } else {
+        toast.error('Failed to update recipe');
+      }
+    } catch {
+      toast.error('Error saving recipe');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div>
+            <h3 className="font-bold text-gray-900">Manage Recipe</h3>
+            <p className="text-xs text-gray-500">{item.name}</p>
+          </div>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-pointer" /></button>
+        </div>
+        <div className="p-5">
+          {isLoading ? <p className="text-center text-gray-500 text-sm">Loading...</p> : (
+            <div className="space-y-4">
+              {recipe.map((ing, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <select
+                    value={ing.raw_material_id}
+                    onChange={e => updateIngredient(i, 'raw_material_id', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                  >
+                    <option value="">Select Material</option>
+                    {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit_type})</option>)}
+                  </select>
+                  <input
+                    type="number" step="0.01" min="0.01"
+                    value={ing.quantity_needed}
+                    onChange={e => updateIngredient(i, 'quantity_needed', e.target.value)}
+                    className="w-24 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none"
+                  />
+                  <button onClick={() => removeIngredient(i)} className="p-2 text-gray-400 hover:text-red-500 cursor-pointer">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={addIngredient} className="w-full py-2 border-2 border-dashed border-gray-200 rounded-lg text-sm text-gray-600 hover:border-purple-300 hover:text-purple-600 font-medium transition-colors cursor-pointer">
+                + Add Ingredient
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-2">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold cursor-pointer">Cancel</button>
+          <button onClick={handleSave} disabled={isLoading || isSaving} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center cursor-pointer">
+            {isSaving ? 'Saving...' : 'Save Recipe'}
+          </button>
         </div>
       </div>
     </div>

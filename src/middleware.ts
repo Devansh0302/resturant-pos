@@ -8,7 +8,11 @@ export async function middleware(request: NextRequest) {
   // Allow public routes
   if (
     pathname.startsWith('/login') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password') ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/cron') ||
+    pathname.startsWith('/api/tenant-branding') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/images') ||
     pathname === '/favicon.ico'
@@ -22,11 +26,53 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const role = token.role as string;
+  
+  const roleAccess: Record<string, string[]> = {
+    '/dashboard': ['ADMIN', 'CASHIER'],
+    '/tables': ['ADMIN', 'CASHIER', 'WAITER'],
+    '/menu': ['ADMIN', 'CASHIER', 'WAITER'],
+    '/bills': ['ADMIN', 'CASHIER'],
+    '/reports': ['ADMIN'],
+    '/staff-performance': ['ADMIN'],
+    '/staff': ['ADMIN'],
+    '/support': ['ADMIN', 'CASHIER', 'WAITER'],
+    '/settings': ['ADMIN'],
+    '/delivery': ['ADMIN', 'CASHIER'],
+    '/super-admin': ['SUPER_ADMIN'],
+    '/kds': ['ADMIN', 'CHEF', 'KITCHEN']
+  };
+
+  // Find if the current path is restricted
+  for (const [route, allowedRoles] of Object.entries(roleAccess)) {
+    if (pathname.startsWith(route)) {
+      if (!allowedRoles.includes(role)) {
+        // Redirect unauthorized user to a safe default page
+        let defaultPage = '/tables';
+        if (role === 'CHEF' || role === 'KITCHEN') defaultPage = '/kds';
+        if (role === 'CASHIER' || role === 'ADMIN') defaultPage = '/dashboard';
+        if (role === 'SUPER_ADMIN') defaultPage = '/super-admin';
+        
+        return NextResponse.redirect(new URL(defaultPage, request.url));
+      }
+      break;
+    }
+  }
+
+  // Handle root route '/'
+  if (pathname === '/') {
+    let defaultPage = '/tables'; 
+    if (role === 'CHEF' || role === 'KITCHEN') defaultPage = '/kds';
+    if (role === 'CASHIER' || role === 'ADMIN') defaultPage = '/dashboard';
+    if (role === 'SUPER_ADMIN') defaultPage = '/super-admin';
+    return NextResponse.redirect(new URL(defaultPage, request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|images).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

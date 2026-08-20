@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/reports/sales - Hourly revenue data
 export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+
     const { searchParams } = new URL(req.url);
     const from = searchParams.get('from');
     const to = searchParams.get('to');
@@ -13,10 +21,22 @@ export async function GET(req: NextRequest) {
 
     const orders = await prisma.order.findMany({
       where: {
+        restaurant_id: restaurantId,
         status: 'PAID',
         paid_at: { gte: startDate, lte: endDate },
       },
-      select: { paid_at: true, total_amount: true, subtotal: true, cgst_amount: true, sgst_amount: true, payment_mode: true },
+      select: { 
+        paid_at: true, 
+        total_amount: true, 
+        subtotal: true, 
+        cgst_amount: true, 
+        sgst_amount: true, 
+        payment_mode: true,
+        table_id: true,
+        staff: {
+          select: { name: true, role: true }
+        }
+      },
     });
 
     // Hourly breakdown (6AM to 11PM)
@@ -62,6 +82,7 @@ export async function GET(req: NextRequest) {
     const orderItems = await prisma.orderItem.findMany({
       where: {
         order: {
+          restaurant_id: restaurantId,
           status: 'PAID',
           paid_at: { gte: startDate, lte: endDate },
         },
@@ -81,11 +102,34 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 10);
 
+    // Staff Performance
+    const staffStats = new Map<string, { name: string; role: string; tables: Set<string>; revenue: number; orders: number }>();
+    
+    orders.forEach(order => {
+      const staffName = order.staff?.name || 'Unknown';
+      const staffRole = order.staff?.role || 'UNKNOWN';
+      const key = staffName; // Use name as key, or staff_id if we included it, but we only have name/role now. Let's group by name.
+      const existing = staffStats.get(key) || { name: staffName, role: staffRole, tables: new Set<string>(), revenue: 0, orders: 0 };
+      if (order.table_id) existing.tables.add(order.table_id);
+      existing.revenue += order.total_amount;
+      existing.orders += 1;
+      staffStats.set(key, existing);
+    });
+
+    const staffPerformance = Array.from(staffStats.values()).map(s => ({
+      name: s.name,
+      role: s.role,
+      tablesHandled: s.tables.size,
+      ordersHandled: s.orders,
+      revenue: s.revenue
+    })).sort((a, b) => b.revenue - a.revenue);
+
     return NextResponse.json({
       hourly: hourlyData,
       daily: dailyData,
       payment_split: paymentSplit,
       top_items: topItems,
+      staff_performance: staffPerformance,
       total_revenue: orders.reduce((s, o) => s + o.subtotal, 0),
       total_orders: orders.length,
       total_gst: orders.reduce((s, o) => s + o.cgst_amount + o.sgst_amount, 0),

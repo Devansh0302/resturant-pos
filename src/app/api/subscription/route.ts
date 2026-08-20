@@ -16,7 +16,9 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
 
     // Build where clause
-    const where: any = {};
+    const where: any = {
+      restaurant_id: (session.user as any).restaurantId,
+    };
     if (year && year !== 'all') {
       const yearNum = parseInt(year);
       where.created_at = {
@@ -35,7 +37,8 @@ export async function GET(req: NextRequest) {
     });
 
     // Fetch current restaurant subscription info
-    const restaurant = await prisma.restaurant.findFirst({
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: (session.user as any).restaurantId },
       select: {
         subscription_status: true,
         subscription_end_date: true,
@@ -44,6 +47,7 @@ export async function GET(req: NextRequest) {
 
     // Compute stats
     const allRecords = await prisma.subscriptionHistory.findMany({
+      where: { restaurant_id: (session.user as any).restaurantId },
       orderBy: { created_at: 'desc' },
     });
 

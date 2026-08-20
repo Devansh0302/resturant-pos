@@ -12,6 +12,7 @@ const COLORS = ['#10B981', '#F97316', '#3B82F6'];
 
 export default function ReportsPage() {
   const [period, setPeriod] = useState('today');
+  const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,6 +34,10 @@ export default function ReportsPage() {
         break;
       case 'month':
         from = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`;
+        break;
+      case 'custom':
+        from = customDate;
+        to = customDate;
         break;
     }
 
@@ -84,6 +89,14 @@ export default function ReportsPage() {
               {p.label}
             </button>
           ))}
+          <div className="flex items-center ml-2 border-l border-gray-200 pl-2">
+            <input 
+              type="date" 
+              value={customDate} 
+              onChange={(e) => { setCustomDate(e.target.value); setPeriod('custom'); }} 
+              className="px-2 py-1.5 rounded-md text-xs font-medium border border-gray-200 bg-white text-gray-700 outline-none focus:border-indigo-500 cursor-pointer"
+            />
+          </div>
         </div>
       </div>
 
@@ -171,7 +184,7 @@ export default function ReportsPage() {
           </thead>
           <tbody>
             {(reportData?.top_items || []).map((item: any, i: number) => (
-              <tr key={item.name} style={{ borderBottom: '1px solid #F3F4F6' }}>
+              <tr key={`${item.name}-${i}`} style={{ borderBottom: '1px solid #F3F4F6' }}>
                 <td className="px-4 py-2.5 text-xs" style={{ color: '#9CA3AF' }}>{i + 1}</td>
                 <td className="px-4 py-2.5 font-medium" style={{ color: '#1A1A1A' }}>{item.name}</td>
                 <td className="px-4 py-2.5 text-right" style={{ fontFamily: 'var(--font-mono)' }}>{item.quantity}</td>

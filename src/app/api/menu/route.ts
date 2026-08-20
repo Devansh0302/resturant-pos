@@ -6,8 +6,14 @@ import { authOptions } from '@/lib/auth';
 // GET /api/menu - Returns all active items grouped by category
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+
     const categories = await prisma.category.findMany({
-      where: { is_active: true },
+      where: { restaurant_id: restaurantId, is_active: true },
       orderBy: { sort_order: 'asc' },
       include: {
         menu_items: {
@@ -47,9 +53,10 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    const restaurantId = (session.user as any).restaurantId;
 
     const body = await req.json();
     const { name, category_id, food_type, price, description, is_available } = body;
@@ -60,6 +67,7 @@ export async function POST(req: NextRequest) {
 
     const item = await prisma.menuItem.create({
       data: {
+        restaurant_id: restaurantId,
         name,
         category_id,
         food_type: food_type || 'VEG',

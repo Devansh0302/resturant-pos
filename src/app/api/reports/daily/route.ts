@@ -1,9 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/reports/daily - Today's aggregated stats
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -14,6 +22,7 @@ export async function GET() {
     // Today's stats
     const todayOrders = await prisma.order.findMany({
       where: {
+        restaurant_id: restaurantId,
         status: 'PAID',
         paid_at: { gte: today, lt: tomorrow },
       },
@@ -21,6 +30,7 @@ export async function GET() {
 
     const yesterdayOrders = await prisma.order.findMany({
       where: {
+        restaurant_id: restaurantId,
         status: 'PAID',
         paid_at: { gte: yesterday, lt: today },
       },
@@ -36,8 +46,17 @@ export async function GET() {
     const avgOrderValue = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
 
     // Active tables
-    const activeTables = await prisma.table.count({ where: { status: 'OCCUPIED' } });
-    const totalTables = await prisma.table.count();
+    const activeTables = await prisma.table.count({
+      where: {
+        restaurant_id: restaurantId,
+        orders: {
+          some: { status: 'OPEN' }
+        }
+      }
+    });
+    const totalTables = await prisma.table.count({
+      where: { restaurant_id: restaurantId }
+    });
 
     // Cash/UPI/Card split
     const cashTotal = todayOrders.filter(o => o.payment_mode === 'CASH').reduce((s, o) => s + o.subtotal, 0);

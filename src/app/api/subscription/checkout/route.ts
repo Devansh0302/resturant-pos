@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import Razorpay from 'razorpay';
-
-const prisma = new PrismaClient();
-
-const PLANS = {
-  annual: { name: 'Annual Premium', type: 'ANNUAL', amount: 4499 },
-  quarterly: { name: 'Quarterly Professional', type: 'QUARTERLY', amount: 1299 },
-  monthly: { name: 'Monthly Starter', type: 'MONTHLY', amount: 499 },
-};
 
 export async function POST(req: Request) {
   try {
     const { plan } = await req.json();
 
-    if (!PLANS[plan as keyof typeof PLANS]) {
+    const selectedPlan = await prisma.subscriptionPlan.findUnique({
+      where: { slug: plan }
+    });
+
+    if (!selectedPlan) {
       return NextResponse.json({ error: 'Invalid plan selected' }, { status: 400 });
     }
 
-    const selectedPlan = PLANS[plan as keyof typeof PLANS];
-    const taxAmount = parseFloat((selectedPlan.amount * 0.18).toFixed(2));
-    const totalAmount = selectedPlan.amount + taxAmount;
+    const taxAmount = parseFloat((selectedPlan.price * 0.18).toFixed(2));
+    const totalAmount = selectedPlan.price + taxAmount;
 
     // Initialize Razorpay
     const razorpay = new Razorpay({
@@ -40,8 +35,8 @@ export async function POST(req: Request) {
     const session = await prisma.checkoutSession.create({
       data: {
         plan_name: selectedPlan.name,
-        plan_type: selectedPlan.type,
-        amount: selectedPlan.amount,
+        plan_type: selectedPlan.slug.toUpperCase(),
+        amount: selectedPlan.price,
         tax_amount: taxAmount,
         total_amount: totalAmount,
         status: 'PENDING',

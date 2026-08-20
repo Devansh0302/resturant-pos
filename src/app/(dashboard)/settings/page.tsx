@@ -243,7 +243,23 @@ export default function SettingsPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState('annual');
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState('');
+
+  // Fetch subscription plans
+  useEffect(() => {
+    fetch('/api/subscription/plans')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setPlans(data);
+          if (data.length > 0) {
+            setSelectedPlan(data[0].slug);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch restaurant settings
   useEffect(() => {
@@ -378,7 +394,7 @@ export default function SettingsPage() {
           <div className="premium-card" style={{ maxWidth: '32rem', padding: '28px' }}>
             <div className="space-y-4">
               {[
-                { label: 'Restaurant Name', key: 'name', placeholder: 'Spice Route' },
+                { label: 'Restaurant Name', key: 'name', placeholder: 'NxtDine' },
                 { label: 'Address', key: 'address', placeholder: 'MG Road, Jaipur' },
                 { label: 'Phone', key: 'phone', placeholder: '+91 98765 43210' },
                 { label: 'GSTIN', key: 'gstin', placeholder: '08ABCDE1234F1Z5' },
@@ -935,52 +951,35 @@ export default function SettingsPage() {
                 </div>
                 
                 <p className="text-sm text-gray-600 mb-6">
-                  Select your preferred plan to renew your Spice Route dashboard access. You will be redirected to our secure payment gateway.
+                  Select your preferred plan to renew your NxtDine dashboard access. You will be redirected to our secure payment gateway.
                 </p>
 
                 <div className="space-y-3 mb-6">
                   {/* Plan Options */}
-                  <label 
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPlan === 'annual' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                    onClick={() => setSelectedPlan('annual')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input type="radio" name="plan" checked={selectedPlan === 'annual'} onChange={() => setSelectedPlan('annual')} className="w-4 h-4 text-emerald-600" />
-                      <div>
-                        <p className={`text-sm font-bold ${selectedPlan === 'annual' ? 'text-gray-900' : 'text-gray-700'}`}>Annual Premium</p>
-                        <p className="text-xs text-gray-500">Billed yearly (Save 33%)</p>
+                  {plans.map((plan) => (
+                    <label
+                      key={plan.id}
+                      className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPlan === plan.slug ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                      onClick={() => setSelectedPlan(plan.slug)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input type="radio" name="plan" checked={selectedPlan === plan.slug} onChange={() => setSelectedPlan(plan.slug)} className="w-4 h-4 text-emerald-600" />
+                        <div>
+                          <p className={`text-sm font-bold ${selectedPlan === plan.slug ? 'text-gray-900' : 'text-gray-700'}`}>{plan.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {plan.duration === 1 ? 'Billed monthly' : plan.duration === 3 ? 'Billed every 3 months' : plan.duration === 6 ? 'Billed every 6 months' : 'Billed yearly'}
+                          </p>
+                        </div>
                       </div>
+                      <p className={`font-bold ${selectedPlan === plan.slug ? 'text-emerald-700' : 'text-gray-900'}`}>₹{plan.price.toLocaleString('en-IN')}</p>
+                    </label>
+                  ))}
+                  {plans.length === 0 && (
+                    <div className="text-center py-4 text-gray-500 text-sm">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-emerald-500" />
+                      Loading plans...
                     </div>
-                    <p className={`font-bold ${selectedPlan === 'annual' ? 'text-emerald-700' : 'text-gray-900'}`}>₹4,499</p>
-                  </label>
-                  
-                  <label 
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPlan === 'quarterly' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                    onClick={() => setSelectedPlan('quarterly')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input type="radio" name="plan" checked={selectedPlan === 'quarterly'} onChange={() => setSelectedPlan('quarterly')} className="w-4 h-4 text-emerald-600" />
-                      <div>
-                        <p className={`text-sm font-bold ${selectedPlan === 'quarterly' ? 'text-gray-900' : 'text-gray-700'}`}>Quarterly Professional</p>
-                        <p className="text-xs text-gray-500">Billed every 3 months</p>
-                      </div>
-                    </div>
-                    <p className={`font-bold ${selectedPlan === 'quarterly' ? 'text-emerald-700' : 'text-gray-900'}`}>₹1,299</p>
-                  </label>
-
-                  <label 
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPlan === 'monthly' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-                    onClick={() => setSelectedPlan('monthly')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input type="radio" name="plan" checked={selectedPlan === 'monthly'} onChange={() => setSelectedPlan('monthly')} className="w-4 h-4 text-emerald-600" />
-                      <div>
-                        <p className={`text-sm font-bold ${selectedPlan === 'monthly' ? 'text-gray-900' : 'text-gray-700'}`}>Monthly Starter</p>
-                        <p className="text-xs text-gray-500">Billed monthly</p>
-                      </div>
-                    </div>
-                    <p className={`font-bold ${selectedPlan === 'monthly' ? 'text-emerald-700' : 'text-gray-900'}`}>₹499</p>
-                  </label>
+                  )}
                 </div>
 
                 <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg flex items-start gap-2 mb-6">

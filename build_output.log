@@ -1,0 +1,113 @@
+ΓÜá `eslint` configuration in next.config.ts is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+ΓÜá Invalid next.config.ts options detected: 
+ΓÜá     Unrecognized key(s) in object: 'eslint'
+ΓÜá See more info here: https://nextjs.org/docs/messages/invalid-next-config
+Γû▓ Next.js 16.2.9 (Turbopack)
+- Environments: .env.local, .env
+
+ΓÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 22.8s
+  Skipping validation of types
+  Finished TypeScript config validation in 19ms ...
+  Collecting page data using 15 workers ...
+  Generating static pages using 15 workers (0/67) ...
+  Generating static pages using 15 workers (16/67) 
+  Generating static pages using 15 workers (33/67) 
+  Generating static pages using 15 workers (50/67) 
+Γ£ô Generating static pages using 15 workers (67/67) in 1371ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/auth/[...nextauth]
+Γö£ ╞Æ /api/auth/forgot-password
+Γö£ ╞Æ /api/auth/reset-password
+Γö£ ╞Æ /api/auth/setup-password
+Γö£ ╞Æ /api/bills
+Γö£ ╞Æ /api/cron/daily-report
+Γö£ ╞Æ /api/inventory
+Γö£ ╞Æ /api/inventory/[id]
+Γö£ ╞Æ /api/kds
+Γö£ ╞Æ /api/kds/[orderId]
+Γö£ ╞Æ /api/kds/history
+Γö£ ╞Æ /api/menu
+Γö£ ╞Æ /api/menu/[id]
+Γö£ ╞Æ /api/menu/categories
+Γö£ ╞Æ /api/menu/categories/[id]
+Γö£ ╞Æ /api/menu/categories/reorder
+Γö£ ╞Æ /api/menu/price-logs
+Γö£ ╞Æ /api/notifications
+Γö£ ╞Æ /api/orders
+Γö£ ╞Æ /api/orders/[id]
+Γö£ ╞Æ /api/orders/[id]/bill
+Γö£ ╞Æ /api/orders/[id]/kot
+Γö£ ╞Æ /api/orders/[id]/payment
+Γö£ ╞Æ /api/orders/[id]/request
+Γö£ ╞Æ /api/recipes
+Γö£ ╞Æ /api/reports/daily
+Γö£ ╞Æ /api/reports/sales
+Γö£ ╞Æ /api/restaurant
+Γö£ ╞Æ /api/staff
+Γö£ ╞Æ /api/staff/[id]/history
+Γö£ ╞Æ /api/staff/tour
+Γö£ ╞Æ /api/subscription
+Γö£ ╞Æ /api/subscription/checkout
+Γö£ ╞Æ /api/subscription/plans
+Γö£ ╞Æ /api/subscription/webhook
+Γö£ ╞Æ /api/super-admin/addons
+Γö£ ╞Æ /api/super-admin/billing
+Γö£ ╞Æ /api/super-admin/broadcasts
+Γö£ ╞Æ /api/super-admin/broadcasts/[id]
+Γö£ ╞Æ /api/super-admin/logs
+Γö£ ╞Æ /api/super-admin/plans
+Γö£ ╞Æ /api/super-admin/restaurants
+Γö£ ╞Æ /api/super-admin/restaurants/[id]
+Γö£ ╞Æ /api/super-admin/restaurants/[id]/addons
+Γö£ ╞Æ /api/super-admin/settings
+Γö£ ╞Æ /api/super-admin/staff/[staffId]/reset-password
+Γö£ ╞Æ /api/super-admin/stats
+Γö£ ╞Æ /api/super-admin/tickets
+Γö£ ╞Æ /api/super-admin/tickets/[id]
+Γö£ ╞Æ /api/tables
+Γö£ ╞Æ /api/tables/[id]
+Γö£ ╞Æ /api/tables/demerge
+Γö£ ╞Æ /api/tables/merge
+Γö£ ╞Æ /api/tenant-branding
+Γö£ ╞Æ /api/tickets
+Γö£ ╞Æ /api/webhooks/swiggy
+Γö£ ╞Æ /api/webhooks/zomato
+Γö£ ╞Æ /bills
+Γö£ ╞Æ /checkout/[id]
+Γö£ ╞Æ /dashboard
+Γö£ ╞Æ /delivery
+Γö£ Γùï /forgot-password
+Γö£ ╞Æ /inventory
+Γö£ Γùï /kds
+Γö£ Γùï /login
+Γö£ ╞Æ /menu
+Γö£ ╞Æ /orders/[tableId]
+Γö£ ╞Æ /reports
+Γö£ Γùï /reset-password
+Γö£ ╞Æ /settings
+Γö£ Γùï /setup-password
+Γö£ ╞Æ /staff
+Γö£ ╞Æ /staff-performance
+Γö£ Γùï /super-admin
+Γö£ Γùï /super-admin/billing
+Γö£ Γùï /super-admin/broadcasts
+Γö£ Γùï /super-admin/logs
+Γö£ Γùï /super-admin/restaurants
+Γö£ ╞Æ /super-admin/restaurants/[id]
+Γö£ Γùï /super-admin/settings
+Γö£ Γùï /super-admin/tickets
+Γö£ ╞Æ /support
+Γöö ╞Æ /tables
+
+
+╞Æ Proxy (Middleware)
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

@@ -9,16 +9,8 @@ export function MobileHeader() {
 
   return (
     <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #10B981, #059669)', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}
-        >
-          <Image src="/spice-route-logo.png" alt="Spice Route" width={20} height={20} className="object-contain" />
-        </div>
-        <h1 className="font-semibold text-lg text-gray-900 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
-          Spice Route
-        </h1>
+      <div className="flex items-center">
+        <img src="/logo-premium.png" alt="NXTDINE" className="h-8 w-auto object-contain" />
       </div>
       <button 
         onClick={toggleMobileSidebar}

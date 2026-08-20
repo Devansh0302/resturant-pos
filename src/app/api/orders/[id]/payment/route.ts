@@ -25,17 +25,25 @@ export async function POST(
       },
     });
 
-    // Set primary table back to AVAILABLE
-    await prisma.table.update({
-      where: { id: order.table_id },
-      data: { status: 'AVAILABLE' },
-    });
+    if (order.table_id) {
+      // Set primary table back to AVAILABLE
+      await prisma.table.update({
+        where: { id: order.table_id },
+        data: { status: 'AVAILABLE' },
+      });
 
-    // Unmerge any secondary tables and set them back to AVAILABLE
-    await prisma.table.updateMany({
-      where: { merged_with_id: order.table_id },
-      data: { status: 'AVAILABLE', merged_with_id: null },
-    });
+      // Unmerge any secondary tables and set them back to AVAILABLE
+      await prisma.table.updateMany({
+        where: { merged_with_id: order.table_id },
+        data: { status: 'AVAILABLE', merged_with_id: null },
+      });
+    }
+
+    // Force Next.js to refresh these pages instead of showing cached data
+    const { revalidatePath } = require('next/cache');
+    revalidatePath('/dashboard');
+    revalidatePath('/tables');
+    revalidatePath('/reports');
 
     return NextResponse.json(order);
   } catch (error) {

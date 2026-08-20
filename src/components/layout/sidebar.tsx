@@ -19,7 +19,9 @@ import {
   Users,
   ClipboardCheck,
   Smartphone,
-  TrendingUp
+  TrendingUp,
+  LifeBuoy,
+  Award
 } from 'lucide-react';
 import Image from 'next/image';
 import { useUIStore } from '@/store/ui-store';
@@ -30,8 +32,9 @@ const navItems = [
   { label: 'Menu', href: '/menu', icon: UtensilsCrossed, roles: ['ADMIN', 'CASHIER', 'WAITER'] },
   { label: 'Bills', href: '/bills', icon: Receipt, roles: ['ADMIN', 'CASHIER'] },
   { label: 'Reports', href: '/reports', icon: BarChart3, roles: ['ADMIN'] },
+  { label: 'Staff Performance', href: '/staff-performance', icon: Award, roles: ['ADMIN'] },
   { label: 'Staff', href: '/staff', icon: Users, roles: ['ADMIN'] },
-  { label: 'Staff Performance', href: '/staff-performance', icon: TrendingUp, roles: ['ADMIN', 'CASHIER'] },
+  { label: 'Help & Support', href: '/support', icon: LifeBuoy, roles: ['ADMIN', 'CASHIER', 'WAITER'] },
   { label: 'Settings', href: '/settings', icon: Settings, roles: ['ADMIN'] },
 ];
 
@@ -42,6 +45,7 @@ export function Sidebar() {
   const { isMobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [integrationsEnabled, setIntegrationsEnabled] = useState(false);
+  const [restaurantName, setRestaurantName] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentTime(new Date());
@@ -51,10 +55,15 @@ export function Sidebar() {
       fetch('/api/restaurant')
         .then(res => res.json())
         .then(data => {
-          if (data && (data.swiggy_enabled || data.zomato_enabled)) {
-            setIntegrationsEnabled(true);
-          } else {
-            setIntegrationsEnabled(false);
+          if (data) {
+            if (data.swiggy_enabled || data.zomato_enabled) {
+              setIntegrationsEnabled(true);
+            } else {
+              setIntegrationsEnabled(false);
+            }
+            if (data.name) {
+              setRestaurantName(data.name);
+            }
           }
         })
         .catch(console.error);
@@ -105,33 +114,22 @@ export function Sidebar() {
       }}
     >
       {/* Logo & Brand */}
-      <div className="px-5 py-5" style={{ borderBottom: '1px solid #E5E7EB' }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #10B981, #059669)', boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)' }}
-          >
-            <Image
-              src="/images/logo.png"
-              alt="Logo"
-              width={28}
-              height={28}
-              className="rounded-lg"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                target.parentElement!.innerHTML = '<span style="color:white;font-size:14px;font-weight:700">SR</span>';
-              }}
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid #E5E7EB' }}>
+        <div className="flex items-center justify-center py-1">
+          {isAdmin && restaurantName ? (
+            <h2 
+              className="text-2xl font-extrabold tracking-tight truncate max-w-full text-gray-900" 
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              {restaurantName}
+            </h2>
+          ) : (
+            <img
+              src="/logo-premium.png"
+              alt="NXTDINE Logo"
+              className="h-10 w-auto object-contain"
             />
-          </div>
-          <div>
-            <h1 className="text-base font-bold leading-tight" style={{ fontFamily: 'var(--font-heading)', color: '#1A1A1A' }}>
-              Spice Route
-            </h1>
-            <p className="text-[10px] tracking-wider uppercase" style={{ color: '#6B7280' }}>
-              Billing System
-            </p>
-          </div>
+          )}
         </div>
       </div>
 
@@ -167,6 +165,7 @@ export function Sidebar() {
           return (
             <button
               key={item.href}
+              id={`tour-${item.label.toLowerCase().replace(/ & /g, '-').replace(/ /g, '-')}`}
               onClick={() => {
                 router.push(item.href);
                 setMobileSidebarOpen(false);
@@ -247,7 +246,7 @@ export function Sidebar() {
 
         {/* Logout */}
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={() => signOut({ redirect: false }).then(() => { window.location.href = window.location.origin + '/login'; })}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-150 cursor-pointer"
           style={{ color: '#EF4444' }}
           onMouseEnter={(e) => {

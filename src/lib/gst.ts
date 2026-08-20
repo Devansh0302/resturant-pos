@@ -1,5 +1,5 @@
 /**
- * GST Calculation Helpers for Spice Route
+ * GST Calculation Helpers for NxtDine
  */
 
 export interface GSTBreakdown {

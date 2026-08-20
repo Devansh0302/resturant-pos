@@ -14,6 +14,7 @@ interface Notification {
   table_number: string;
   kot_requested: boolean;
   bill_requested: boolean;
+  is_ready?: boolean;
   guest_count: number;
 }
 
@@ -26,8 +27,8 @@ export function NotificationListener() {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const prevNotifIds = useRef<Set<string>>(new Set());
 
-  // Only run for Admin and Cashier
-  const isPrivileged = (session?.user as any)?.role === 'ADMIN' || (session?.user as any)?.role === 'CASHIER';
+  // Run for Admin, Cashier and Waiters
+  const isPrivileged = (session?.user as any)?.role === 'ADMIN' || (session?.user as any)?.role === 'CASHIER' || (session?.user as any)?.role === 'WAITER';
 
   useEffect(() => {
     if (!isPrivileged) return;
@@ -35,30 +36,34 @@ export function NotificationListener() {
     const fetchNotifications = async () => {
       try {
         const res = await fetch('/api/notifications');
-        const data: Notification[] = await res.json();
-        
-        if (Array.isArray(data)) {
-          setNotifications(data);
-
-          // Check for new notifications to play sound
-          const currentIds = new Set(data.map(n => n.order_id + (n.kot_requested ? 'K' : '') + (n.bill_requested ? 'B' : '')));
-          let hasNew = false;
+        const contentType = res.headers.get('content-type');
+        if (res.ok && contentType && contentType.includes('application/json')) {
+          const data: Notification[] = await res.json();
           
-          for (const id of currentIds) {
-            if (!prevNotifIds.current.has(id)) {
-              hasNew = true;
-              break;
+          if (Array.isArray(data)) {
+            setNotifications(data);
+
+            // Check for new notifications to play sound
+            const currentIds = new Set(data.map(n => n.order_id + (n.kot_requested ? 'K' : '') + (n.bill_requested ? 'B' : '') + (n.is_ready ? 'R' : '')));
+            let hasNew = false;
+            
+            for (const id of currentIds) {
+              if (!prevNotifIds.current.has(id)) {
+                hasNew = true;
+                break;
+              }
             }
-          }
 
-          if (hasNew) {
-            playSound();
+            if (hasNew) {
+              playSound();
+            }
+            
+            prevNotifIds.current = currentIds;
           }
-          
-          prevNotifIds.current = currentIds;
         }
       } catch (error) {
-        console.error('Failed to fetch notifications');
+        // Use warn instead of error to prevent Next.js dev overlay from popping up during transient network drops
+        console.warn('Failed to fetch notifications during polling');
       }
     };
 
@@ -80,9 +85,15 @@ export function NotificationListener() {
     };
     window.addEventListener('click', handleInteraction);
     
+    // Fallback Polling every 3 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 3000);
+    
     return () => {
       supabase.removeChannel(channel);
       window.removeEventListener('click', handleInteraction);
+      clearInterval(interval);
     };
   }, [isPrivileged]);
 
@@ -144,6 +155,8 @@ export function NotificationListener() {
 
   if (!isPrivileged || visibleNotifications.length === 0) return null;
 
+  const isWaiter = (session?.user as any)?.role === 'WAITER';
+
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-sm w-full">
       <AnimatePresence>
@@ -163,39 +176,58 @@ export function NotificationListener() {
               <X className="w-4 h-4" />
             </button>
             <div className="p-4 flex gap-4">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1" style={{ backgroundColor: '#FEF2F2' }}>
-                <Bell className="w-5 h-5" style={{ color: '#EF4444' }} />
-              </div>
+              {notif.is_ready ? (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1" style={{ backgroundColor: '#ECFDF5' }}>
+                  <Bell className="w-5 h-5" style={{ color: '#10B981' }} />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1" style={{ backgroundColor: '#FEF2F2' }}>
+                  <Bell className="w-5 h-5" style={{ color: '#EF4444' }} />
+                </div>
+              )}
               <div className="flex-1">
                 <h4 className="text-sm font-bold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>
                   Table {notif.table_number}
                 </h4>
                 <p className="text-xs text-gray-600 mt-0.5">
-                  Requested {notif.kot_requested && notif.bill_requested ? 'KOT & Bill' : notif.kot_requested ? 'KOT' : 'Bill'}
+                  {notif.is_ready 
+                    ? 'Order is READY! Please serve the food.' 
+                    : `Requested ${notif.kot_requested && notif.bill_requested ? 'KOT & Bill' : notif.kot_requested ? 'KOT' : 'Bill'}`}
                 </p>
                 
                 <div className="flex gap-2 mt-3">
-                  {notif.kot_requested && (
+                  {notif.is_ready ? (
                     <button
-                      onClick={() => handlePrintKot(notif.order_id)}
+                      onClick={() => handleDismiss(notif.order_id)}
                       className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors flex justify-center items-center gap-1 cursor-pointer"
                     >
-                      <Printer className="w-3.5 h-3.5" /> Print KOT
+                      Dismiss
                     </button>
-                  )}
-                  {notif.bill_requested && (
-                    <button
-                      onClick={() => handleGenerateBill(notif.order_id)}
-                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors flex justify-center items-center gap-1 cursor-pointer"
-                    >
-                      <FileText className="w-3.5 h-3.5" /> Generate Bill
-                    </button>
+                  ) : (
+                    <>
+                      {notif.kot_requested && (
+                        <button
+                          onClick={() => handlePrintKot(notif.order_id)}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors flex justify-center items-center gap-1 cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" /> Print KOT
+                        </button>
+                      )}
+                      {notif.bill_requested && (
+                        <button
+                          onClick={() => handleGenerateBill(notif.order_id)}
+                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors flex justify-center items-center gap-1 cursor-pointer"
+                        >
+                          <FileText className="w-3.5 h-3.5" /> Generate Bill
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
             </div>
             {/* Top accent line */}
-            <div className="h-1 w-full bg-red-500 absolute top-0 left-0" />
+            <div className={`h-1 w-full absolute top-0 left-0 ${notif.is_ready ? 'bg-emerald-500' : 'bg-red-500'}`} />
           </motion.div>
         ))}
       </AnimatePresence>

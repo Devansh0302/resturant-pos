@@ -39,7 +39,7 @@ export default function CheckoutClient({ session }: { session: any }) {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_dummy', 
       amount: Math.round(session.total_amount * 100),
       currency: 'INR',
-      name: "Spice Route",
+      name: "NXTDINE",
       description: session.plan_name,
       order_id: session.razorpay_order_id, 
       handler: async function (response: any) {
@@ -70,8 +70,8 @@ export default function CheckoutClient({ session }: { session: any }) {
         }
       },
       prefill: {
-        name: "Spice Route Admin",
-        email: "admin@spiceroute.com",
+        name: "NXTDINE Admin",
+        email: "admin@nxtdine.com",
         contact: "9999999999"
       },
       theme: {
@@ -129,7 +129,7 @@ export default function CheckoutClient({ session }: { session: any }) {
             <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
               <span className="font-bold text-white text-lg">S</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">Spice Route</span>
+            <span className="font-bold text-xl tracking-tight">NXTDINE</span>
           </div>
 
           <h2 className="text-3xl font-bold mb-2">Checkout</h2>

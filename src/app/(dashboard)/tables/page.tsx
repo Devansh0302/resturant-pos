@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Grid3x3, Users, Clock, MapPin, Combine, Check, X, Unlink, Printer, Eye, RefreshCcw, User } from 'lucide-react';
+import { Grid3x3, Users, Clock, MapPin, Combine, Check, X, Unlink, Printer, Eye, RefreshCcw, User, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface TableData {
@@ -36,6 +36,13 @@ export default function TablesPage() {
   const [selectedTablesForMerge, setSelectedTablesForMerge] = useState<string[]>([]);
   const [isMerging, setIsMerging] = useState(false);
 
+  // Add Table state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newTableNumber, setNewTableNumber] = useState('');
+  const [newTableCapacity, setNewTableCapacity] = useState('4');
+  const [newTableArea, setNewTableArea] = useState<'INDOOR' | 'OUTDOOR' | 'ROOFTOP'>('INDOOR');
+  const [isAddingTable, setIsAddingTable] = useState(false);
+
   useEffect(() => {
     fetchTables();
     // Subscribe to Supabase Realtime to instantly update tables when an order opens/closes
@@ -59,7 +66,14 @@ export default function TablesPage() {
     try {
       const res = await fetch('/api/tables');
       const data = await res.json();
-      setTables(data);
+      
+      if (Array.isArray(data)) {
+        setTables(data);
+      } else {
+        console.error('API returned non-array:', data);
+        toast.error(data.error || 'Failed to load tables. Database may be unreachable.');
+        setTables([]);
+      }
     } catch (error) {
       console.error('Failed to fetch tables:', error);
     } finally {
@@ -152,6 +166,44 @@ export default function TablesPage() {
     }
   };
 
+  const handleAddTable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTableNumber.trim()) {
+      toast.error('Table number is required');
+      return;
+    }
+    
+    setIsAddingTable(true);
+    try {
+      const res = await fetch('/api/tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table_number: newTableNumber.trim(),
+          capacity: parseInt(newTableCapacity, 10),
+          area: newTableArea
+        })
+      });
+      
+      if (res.ok) {
+        toast.success('Table added successfully');
+        setIsAddModalOpen(false);
+        setNewTableNumber('');
+        setNewTableCapacity('4');
+        setNewTableArea('INDOOR');
+        // No need to call fetchTables() manually if Supabase Realtime is working, but it's safe to do.
+        fetchTables();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || 'Failed to add table');
+      }
+    } catch (error) {
+      toast.error('Error adding table');
+    } finally {
+      setIsAddingTable(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -178,7 +230,7 @@ export default function TablesPage() {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
-              className={`filter-pill ${activeFilter === filter ? 'filter-pill-active' : 'filter-pill-inactive'}`}
+              className={`filter-pill ${activeFilter === filter ? 'filter-pill-active' : 'filter-pill-inactive'} cursor-pointer`}
             >
               {filter}
             </button>
@@ -193,7 +245,7 @@ export default function TablesPage() {
             </span>
             <button
               onClick={() => { setIsMergeMode(false); setSelectedTablesForMerge([]); }}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
               Cancel
@@ -201,7 +253,7 @@ export default function TablesPage() {
             <button
               onClick={handleConfirmMerge}
               disabled={selectedTablesForMerge.length < 2 || isMerging}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               {isMerging ? (
                 <span className="animate-spin">⏳</span>
@@ -212,13 +264,22 @@ export default function TablesPage() {
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setIsMergeMode(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 flex items-center gap-1.5 transition-colors border border-blue-200"
-          >
-            <Combine className="w-3.5 h-3.5" />
-            Merge Tables
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsMergeMode(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 flex items-center gap-1.5 transition-colors border border-blue-200 cursor-pointer"
+            >
+              <Combine className="w-3.5 h-3.5" />
+              Merge Tables
+            </button>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Table
+            </button>
+          </div>
         )}
       </div>
 
@@ -245,7 +306,7 @@ export default function TablesPage() {
                 transition={{ delay: index * 0.04, duration: 0.3 }}
                 whileHover={{ scale: 1.02 }}
                 onClick={() => handleTableClick(table)}
-                className={`premium-card premium-card-interactive ${isMergeMode && table.status !== 'AVAILABLE' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`premium-card premium-card-interactive ${isMergeMode && table.status !== 'AVAILABLE' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                 style={{
                   padding: '20px',
                   borderColor: isSelected ? '#2563EB' : (table.status === 'OCCUPIED' ? '#F9731640' : undefined),
@@ -282,7 +343,7 @@ export default function TablesPage() {
                   {(table as any).is_merged && !isMergeMode && (
                     <button
                       onClick={(e) => handleDemerge(e, table.id)}
-                      className="px-2 py-1 rounded text-[10px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center gap-1 transition-colors"
+                      className="px-2 py-1 rounded text-[10px] font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <Unlink className="w-3 h-3" />
                       Demerge
@@ -354,6 +415,87 @@ export default function TablesPage() {
           <p className="text-sm" style={{ color: '#6B7280' }}>No tables found in this area</p>
         </div>
       )}
+
+      {/* Add Table Modal */}
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => !isAddingTable && setIsAddModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Add New Table</h3>
+                <button 
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleAddTable} className="p-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Table Name / Number</label>
+                  <input
+                    type="text"
+                    value={newTableNumber}
+                    onChange={(e) => setNewTableNumber(e.target.value)}
+                    placeholder="e.g. T4 or VIP-1"
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Capacity (Seats)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={newTableCapacity}
+                    onChange={(e) => setNewTableCapacity(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Area</label>
+                  <select
+                    value={newTableArea}
+                    onChange={(e) => setNewTableArea(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  >
+                    <option value="INDOOR">Indoor</option>
+                    <option value="OUTDOOR">Outdoor</option>
+                    <option value="ROOFTOP">Rooftop</option>
+                  </select>
+                </div>
+                
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isAddingTable}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center justify-center transition-colors disabled:opacity-70 cursor-pointer"
+                  >
+                    {isAddingTable ? 'Adding...' : 'Add Table'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

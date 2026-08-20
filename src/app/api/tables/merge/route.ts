@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       include: { orders: { where: { status: 'OPEN' } } }
     });
 
-    const busyTable = tables.find(t => t.orders.length > 0 || t.status === 'OCCUPIED');
+    const busyTable = tables.find(t => t.orders.length > 0);
     if (busyTable) {
       return NextResponse.json(
         { error: `Table ${busyTable.table_number} is already occupied. You can only merge available tables.` },

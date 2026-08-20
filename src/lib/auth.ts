@@ -6,10 +6,12 @@ import { prisma } from './prisma';
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
+      id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        impersonateTenantId: { label: 'Impersonate Tenant ID', type: 'text' }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -29,11 +31,34 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        if (credentials.impersonateTenantId) {
+          if (staff.role !== 'SUPER_ADMIN') {
+            return null; // Only Super Admins can impersonate
+          }
+          const targetTenantAdmin = await prisma.staff.findFirst({
+            where: { restaurant_id: credentials.impersonateTenantId, role: 'ADMIN', is_active: true }
+          });
+          if (!targetTenantAdmin) return null;
+          
+          return {
+            id: targetTenantAdmin.id,
+            name: targetTenantAdmin.name,
+            email: targetTenantAdmin.email,
+            role: targetTenantAdmin.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF",
+            restaurantId: targetTenantAdmin.restaurant_id,
+            impersonatedBy: staff.id, // Store super admin ID
+            impersonatedByName: staff.name,
+            has_seen_tour: targetTenantAdmin.has_seen_tour,
+          };
+        }
+
         return {
           id: staff.id,
           name: staff.name,
           email: staff.email,
-          role: staff.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF",
+          role: staff.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF" | "SUPER_ADMIN",
+          restaurantId: staff.restaurant_id,
+          has_seen_tour: staff.has_seen_tour,
         };
       },
     }),
@@ -46,6 +71,12 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
+        token.restaurantId = (user as any).restaurantId;
+        if ((user as any).impersonatedBy) {
+          token.impersonatedBy = (user as any).impersonatedBy;
+          token.impersonatedByName = (user as any).impersonatedByName;
+        }
+        token.has_seen_tour = (user as any).has_seen_tour;
       }
       return token;
     },
@@ -53,6 +84,12 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).restaurantId = token.restaurantId;
+        if (token.impersonatedBy) {
+          (session.user as any).impersonatedBy = token.impersonatedBy;
+          (session.user as any).impersonatedByName = token.impersonatedByName;
+        }
+        (session.user as any).has_seen_tour = token.has_seen_tour;
       }
       return session;
     },
@@ -62,5 +99,3 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
-
-export default NextAuth(authOptions);

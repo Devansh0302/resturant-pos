@@ -222,10 +222,6 @@ function StaffManagement() {
                   </span>
                 </div>
 
-                <div className="text-xs text-gray-500 mb-4 px-1 flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5" />
-                  Total Orders Handled: <span className="font-semibold text-gray-700">{s._count?.orders || 0}</span>
-                </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-1" style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px' }}>
@@ -293,13 +289,7 @@ function StaffManagement() {
                   <label className="text-xs font-medium mb-1.5 block" style={{ color: '#374151' }}>Login ID (Email)</label>
                   <div style={{ position: 'relative' }}>
                     <Mail className="w-4 h-4" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF' }} />
-                    <input required type="email" value={formData.email} onChange={e => {
-                      let val = e.target.value;
-                      if (val.endsWith('@') && val.indexOf('@') === val.length - 1 && val.length > formData.email.length) {
-                        val = val + 'spiceroute.in';
-                      }
-                      setFormData({ ...formData, email: val });
-                    }} className="premium-input" style={{ paddingLeft: '36px' }} placeholder="john@spiceroute.in" />
+                    <input required type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="premium-input" style={{ paddingLeft: '36px' }} placeholder="john@example.com" />
                   </div>
                 </div>
                 <div>

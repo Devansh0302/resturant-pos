@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/tables - Returns all tables with active order info
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+
     const tables = await prisma.table.findMany({
-      where: { merged_with_id: null },
+      where: { restaurant_id: restaurantId, merged_with_id: null },
       orderBy: { table_number: 'asc' },
       include: {
         merged_tables: true,
@@ -46,7 +54,7 @@ export async function GET() {
         original_table_number: table.table_number,
         capacity: totalCapacity,
         area: table.area,
-        status: table.status,
+        status: activeOrder ? 'OCCUPIED' : 'AVAILABLE',
         is_merged: table.merged_tables.length > 0,
         activeOrder: activeOrder
           ? {
@@ -73,9 +81,42 @@ export async function GET() {
       };
     });
 
+    result.sort((a, b) => a.original_table_number.localeCompare(b.original_table_number, undefined, { numeric: true, sensitivity: 'base' }));
     return NextResponse.json(result);
   } catch (error) {
     console.error('GET /api/tables error:', error);
     return NextResponse.json({ error: 'Failed to fetch tables' }, { status: 500 });
+  }
+}
+
+// POST /api/tables - Create a new table
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+
+    const { table_number, capacity, area } = await req.json();
+    
+    const existing = await prisma.table.findFirst({ where: { restaurant_id: restaurantId, table_number } });
+    if (existing) {
+      return NextResponse.json({ error: 'Table number already exists' }, { status: 400 });
+    }
+
+    const table = await prisma.table.create({
+      data: {
+        restaurant_id: restaurantId,
+        table_number,
+        capacity: Number(capacity) || 4,
+        area: area || 'INDOOR',
+        status: 'AVAILABLE'
+      }
+    });
+    return NextResponse.json(table);
+  } catch (error) {
+    console.error('POST /api/tables error:', error);
+    return NextResponse.json({ error: 'Failed to create table' }, { status: 500 });
   }
 }
