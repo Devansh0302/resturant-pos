@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Grid3x3, Users, Clock, MapPin, Combine, Check, X, Unlink, Printer, Eye, RefreshCcw, User, Plus } from 'lucide-react';
+import { Grid3x3, Users, Clock, MapPin, Combine, Check, X, Unlink, Printer, Eye, RefreshCcw, User, Plus, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface TableData {
@@ -42,6 +42,14 @@ export default function TablesPage() {
   const [newTableCapacity, setNewTableCapacity] = useState('4');
   const [newTableArea, setNewTableArea] = useState<'INDOOR' | 'OUTDOOR' | 'ROOFTOP'>('INDOOR');
   const [isAddingTable, setIsAddingTable] = useState(false);
+
+  // Edit Table state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTable, setEditingTable] = useState<TableData | null>(null);
+  const [editTableNumber, setEditTableNumber] = useState('');
+  const [editTableCapacity, setEditTableCapacity] = useState('');
+  const [editTableArea, setEditTableArea] = useState<'INDOOR' | 'OUTDOOR' | 'ROOFTOP'>('INDOOR');
+  const [isEditingTable, setIsEditingTable] = useState(false);
 
   useEffect(() => {
     fetchTables();
@@ -204,6 +212,51 @@ export default function TablesPage() {
     }
   };
 
+  const openEditModal = (e: React.MouseEvent, table: TableData) => {
+    e.stopPropagation();
+    setEditingTable(table);
+    setEditTableNumber(table.original_table_number || table.table_number);
+    setEditTableCapacity(table.capacity.toString());
+    setEditTableArea(table.area);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditTable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTable) return;
+    if (!editTableNumber.trim()) {
+      toast.error('Table number is required');
+      return;
+    }
+    
+    setIsEditingTable(true);
+    try {
+      const res = await fetch(`/api/tables/${editingTable.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table_number: editTableNumber.trim(),
+          capacity: parseInt(editTableCapacity, 10),
+          area: editTableArea
+        })
+      });
+      
+      if (res.ok) {
+        toast.success('Table updated successfully');
+        setIsEditModalOpen(false);
+        setEditingTable(null);
+        fetchTables();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || 'Failed to update table');
+      }
+    } catch (error) {
+      toast.error('Error updating table');
+    } finally {
+      setIsEditingTable(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -315,13 +368,24 @@ export default function TablesPage() {
                 }}
               >
               <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3
-                    className="text-xl font-bold"
-                    style={{ fontFamily: 'var(--font-heading)', color: '#1A1A1A' }}
-                  >
-                    {table.table_number}
-                  </h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3
+                      className="text-xl font-bold"
+                      style={{ fontFamily: 'var(--font-heading)', color: '#1A1A1A' }}
+                    >
+                      {table.table_number}
+                    </h3>
+                    {!isMergeMode && (
+                      <button
+                        onClick={(e) => openEditModal(e, table)}
+                        className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+                        title="Edit Table"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 mt-1">
                     <MapPin className="w-3 h-3" style={{ color: '#9CA3AF' }} />
                     <span className="text-xs" style={{ color: '#9CA3AF' }}>
@@ -489,6 +553,86 @@ export default function TablesPage() {
                     className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold flex items-center justify-center transition-colors disabled:opacity-70 cursor-pointer"
                   >
                     {isAddingTable ? 'Adding...' : 'Add Table'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Table Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && editingTable && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+              onClick={() => !isEditingTable && setIsEditModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
+                <h3 className="text-lg font-bold text-gray-900">Edit Table</h3>
+                <button 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleEditTable} className="p-5 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Table Name / Number</label>
+                  <input
+                    type="text"
+                    value={editTableNumber}
+                    onChange={(e) => setEditTableNumber(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Capacity (Seats)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={editTableCapacity}
+                    onChange={(e) => setEditTableCapacity(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Area</label>
+                  <select
+                    value={editTableArea}
+                    onChange={(e) => setEditTableArea(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="INDOOR">Indoor</option>
+                    <option value="OUTDOOR">Outdoor</option>
+                    <option value="ROOFTOP">Rooftop</option>
+                  </select>
+                </div>
+                
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isEditingTable}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold flex items-center justify-center transition-colors disabled:opacity-70 cursor-pointer"
+                  >
+                    {isEditingTable ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
               </form>

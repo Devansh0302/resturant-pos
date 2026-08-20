@@ -58,3 +58,46 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     return NextResponse.json({ error: 'Failed to delete table' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || !(session.user as any).restaurantId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const restaurantId = (session.user as any).restaurantId;
+    const { id } = await params;
+    const { table_number, capacity, area } = await req.json();
+
+    const table = await prisma.table.findUnique({
+      where: { id }
+    });
+
+    if (!table || table.restaurant_id !== restaurantId) {
+      return NextResponse.json({ error: 'Table not found' }, { status: 404 });
+    }
+
+    if (table_number && table_number !== table.table_number) {
+      const existing = await prisma.table.findFirst({
+        where: { restaurant_id: restaurantId, table_number }
+      });
+      if (existing) {
+        return NextResponse.json({ error: 'Table number already exists' }, { status: 400 });
+      }
+    }
+
+    const updatedTable = await prisma.table.update({
+      where: { id },
+      data: {
+        ...(table_number && { table_number }),
+        ...(capacity && { capacity: Number(capacity) }),
+        ...(area && { area }),
+      }
+    });
+
+    return NextResponse.json(updatedTable);
+  } catch (error) {
+    console.error('PATCH /api/tables/[id] error:', error);
+    return NextResponse.json({ error: 'Failed to update table' }, { status: 500 });
+  }
+}
