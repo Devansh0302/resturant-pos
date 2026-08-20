@@ -112,33 +112,14 @@ const AddTenantModal = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Tenant Provisioned! 🎉</h2>
             <p className="text-sm text-gray-500 mb-6">
-              <strong>{setupResult.name}</strong> has been created. A setup invite has been sent to <strong>{setupResult.email}</strong>.
+              <strong>{setupResult.name}</strong> has been successfully created. The owner can now log in using <strong>{setupResult.email}</strong>.
             </p>
-
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-left">
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Password Setup Link</label>
-              <div className="flex items-center gap-2">
-                <input type="text" readOnly value={setupResult.setupUrl}
-                  className="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-700 font-mono truncate"
-                  onClick={(e) => (e.target as HTMLInputElement).select()} />
-                <button type="button"
-                  onClick={() => { navigator.clipboard.writeText(setupResult.setupUrl); toast.success('Link copied!'); }}
-                  className="px-3 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors cursor-pointer flex-shrink-0">
-                  Copy
-                </button>
-              </div>
-              <p className="text-[10px] text-gray-400 mt-2">Share this link with the restaurant owner, or open it yourself to test.</p>
-            </div>
 
             <div className="flex gap-3">
               <button type="button" onClick={onClose}
-                className="flex-1 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-sm font-bold transition-colors cursor-pointer border border-gray-200">
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors cursor-pointer shadow-md">
                 Done
               </button>
-              <a href={setupResult.setupUrl} target="_blank" rel="noopener noreferrer"
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors cursor-pointer text-center shadow-md">
-                Open Setup Link ↗
-              </a>
             </div>
           </div>
         </div>
@@ -174,7 +155,7 @@ const AddTenantModal = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                 <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-1.5">Restaurant Name</label>
                 <input required name="name" type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-400 shadow-sm" placeholder="e.g. Burger Hub" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-1.5">Owner Name</label>
                   <input required name="ownerName" type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-400 shadow-sm" placeholder="e.g. John Doe" />
@@ -182,6 +163,10 @@ const AddTenantModal = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                 <div>
                   <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-1.5">Owner Email</label>
                   <input required name="ownerEmail" type="email" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-400 shadow-sm" placeholder="john@burgerhub.com" />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-1.5">Owner Password</label>
+                  <input required name="ownerPassword" type="password" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-400 shadow-sm" placeholder="••••••••" />
                 </div>
               </div>
               <div>
@@ -254,14 +239,7 @@ const AddTenantModal = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                 </div>
               )}
 
-              {/* Email Info */}
-              <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                <Mail className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-[11px] text-blue-700 leading-relaxed">
-                  An <strong>email invite</strong> will be sent to the owner to set their password and PIN.
-                </p>
-              </div>
-            </div>
+
 
             {/* Fixed Footer with Total */}
             <div className="border-t border-gray-100 bg-gray-50/95 p-5 flex-shrink-0 z-10 relative">
@@ -288,7 +266,7 @@ const AddTenantModal = ({ onClose, onSuccess }: { onClose: () => void, onSuccess
                   Cancel
                 </button>
                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors cursor-pointer disabled:opacity-50 shadow-md">
-                  {isSubmitting ? 'Provisioning...' : 'Provision & Send Invite'}
+                  {isSubmitting ? 'Provisioning...' : 'Provision Tenant'}
                 </button>
               </div>
             </div>
