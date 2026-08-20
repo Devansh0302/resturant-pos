@@ -96,8 +96,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     return NextResponse.json(updatedTable);
-  } catch (error) {
+  } catch (error: any) {
     console.error('PATCH /api/tables/[id] error:', error);
-    return NextResponse.json({ error: 'Failed to update table' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || String(error) || 'Failed to update table' }, { status: 500 });
   }
 }
