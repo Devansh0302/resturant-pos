@@ -20,7 +20,10 @@ export async function GET() {
       include: {
         menu_items: {
           where: { is_deleted: false },
-          orderBy: { name: 'asc' },
+          orderBy: [
+            { price: 'asc' },
+            { name: 'asc' }
+          ],
           select: {
             id: true,
             name: true,
