@@ -151,6 +151,7 @@ model Order {
   discount_request_percent Float?
   discount_request_status  String?     @default("NONE") // NONE, PENDING, APPROVED, REJECTED
   total_amount             Float       @default(0)
+  round_off                Float       @default(0)
   payment_mode    String?
   payment_status  String      @default("PENDING")
   paid_at         DateTime?

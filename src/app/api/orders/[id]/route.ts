@@ -50,6 +50,7 @@ export async function PATCH(
             cgst_amount: gst.cgst,
             sgst_amount: gst.sgst,
             total_amount: gst.total,
+            round_off: gst.round_off,
           }
         });
         return NextResponse.json(order);
@@ -118,6 +119,7 @@ export async function PATCH(
           cgst_amount: gst.cgst,
           sgst_amount: gst.sgst,
           total_amount: gst.total,
+          round_off: gst.round_off,
           guest_count: body.guest_count,
           notes: body.notes || null,
         },

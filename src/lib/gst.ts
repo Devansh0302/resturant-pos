@@ -7,6 +7,7 @@ export interface GSTBreakdown {
   cgst: number;
   sgst: number;
   total: number;
+  round_off: number;
 }
 
 /**
@@ -21,9 +22,11 @@ export function calculateGST(
 ): GSTBreakdown {
   const cgst = round2(subtotal * (cgstRate / 100));
   const sgst = round2(subtotal * (sgstRate / 100));
-  const total = round2(subtotal + cgst + sgst);
+  const preciseTotal = subtotal + cgst + sgst;
+  const total = Math.round(preciseTotal);
+  const round_off = round2(total - preciseTotal);
 
-  return { subtotal: round2(subtotal), cgst, sgst, total };
+  return { subtotal: round2(subtotal), cgst, sgst, total, round_off };
 }
 
 /**

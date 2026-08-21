@@ -32,6 +32,7 @@ export async function POST(
         cgst_amount: gst.cgst,
         sgst_amount: gst.sgst,
         total_amount: gst.total,
+        round_off: gst.round_off,
         bill_requested: false,
       },
     });

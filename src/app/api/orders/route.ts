@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
         cgst_amount: gst.cgst,
         sgst_amount: gst.sgst,
         total_amount: gst.total,
+        round_off: gst.round_off,
         notes: notes || null,
         order_items: items?.length
           ? {

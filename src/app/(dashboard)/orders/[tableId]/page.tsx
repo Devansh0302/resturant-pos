@@ -417,7 +417,7 @@ export default function OrderPage() {
   };
 
   const handleWhatsApp = () => {
-    const text = `*NXTDINE*%0AMG Road, Jaipur%0A%0ATable: ${tableInfo?.table_number}%0AGuests: ${guestCount}%0A%0A${items.map(i => `${i.name} x${i.quantity} - ₹${i.total_price}`).join('%0A')}%0A%0ASubtotal: ₹${subtotal.toFixed(2)}%0ACGST 2.5%: ₹${gst.cgst.toFixed(2)}%0ASGST 2.5%: ₹${gst.sgst.toFixed(2)}%0A*Total: ₹${gst.total.toFixed(2)}*%0A%0AThank you for dining with us!`;
+    const text = `*NXTDINE*%0AMG Road, Jaipur%0A%0ATable: ${tableInfo?.table_number}%0AGuests: ${guestCount}%0A%0A${items.map(i => `${i.name} x${i.quantity} - ₹${i.total_price}`).join('%0A')}%0A%0ASubtotal: ₹${subtotal.toFixed(2)}%0ACGST 2.5%: ₹${gst.cgst.toFixed(2)}%0ASGST 2.5%: ₹${gst.sgst.toFixed(2)}%0ARound Off: ₹${gst.round_off.toFixed(2)}%0A*Total: ₹${gst.total.toFixed(2)}*%0A%0AThank you for dining with us!`;
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
@@ -706,6 +706,12 @@ export default function OrderPage() {
                   <span style={{ color: '#9CA3AF' }}>SGST 2.5%</span>
                   <span style={{ fontFamily: 'var(--font-mono)', color: '#9CA3AF' }}>₹{gst.sgst.toFixed(2)}</span>
                 </div>
+                {gst.round_off !== 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: '#9CA3AF' }}>Round Off</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: '#9CA3AF' }}>₹{gst.round_off.toFixed(2)}</span>
+                  </div>
+                )}
                 
                 {/* Discount Section (Only for Yangkiez) */}
                 {isYangkiez && (isAdminOrManager || isCashier) && (
@@ -945,6 +951,12 @@ export default function OrderPage() {
                   <span style={{ color: '#9CA3AF' }}>SGST 2.5%</span>
                   <span style={{ fontFamily: 'var(--font-mono)', color: '#9CA3AF' }}>₹{gst.sgst.toFixed(2)}</span>
                 </div>
+                {gst.round_off !== 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: '#9CA3AF' }}>Round Off</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: '#9CA3AF' }}>₹{gst.round_off.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-base font-bold pt-2" style={{ borderTop: '1px solid #E5E7EB' }}>
                   <span>Grand Total</span>
                   <span style={{ fontFamily: 'var(--font-mono)', color: '#F97316' }}>₹{gst.total.toFixed(2)}</span>
