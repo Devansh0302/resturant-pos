@@ -187,7 +187,7 @@ export function DashboardClient() {
                 <td className="px-4 py-2.5 font-medium" style={{ fontFamily: "var(--font-mono)", color: "#1A1A1A", fontSize: "12px" }}>{order.invoice_number}</td>
                 <td className="px-4 py-2.5" style={{ color: "#6B7280" }}>{order.table_number}</td>
                 <td className="px-4 py-2.5 text-right" style={{ fontFamily: "var(--font-mono)" }}>{order.items_count}</td>
-                <td className="px-4 py-2.5 text-right font-semibold" style={{ fontFamily: "var(--font-mono)", color: "#1A1A1A" }}>\u20b9{order.total?.toLocaleString("en-IN")}</td>
+                <td className="px-4 py-2.5 text-right font-semibold" style={{ fontFamily: "var(--font-mono)", color: "#1A1A1A" }}>₹{order.total?.toLocaleString("en-IN")}</td>
                 <td className="px-4 py-2.5">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ backgroundColor: "#F5F5F3", color: "#6B7280" }}>
                     {order.payment_mode || "\u2014"}
