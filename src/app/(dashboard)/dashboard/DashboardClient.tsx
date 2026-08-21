@@ -45,7 +45,7 @@ export function DashboardClient() {
 
   const statCards = [
     {
-      label: "Today'\''s Sales",
+      label: "Today's Sales",
       value: `\u20b9${(stats?.today_revenue || 0).toLocaleString("en-IN")}`,
       change: stats?.revenue_change || "0",
       icon: DollarSign,
