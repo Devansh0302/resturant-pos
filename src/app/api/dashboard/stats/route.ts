@@ -41,48 +41,51 @@ export async function GET() {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const [todayOrders, yesterdayOrders, activeTables, totalTables, recentOrders, hourlyOrders] = await Promise.all([
-      prisma.order.findMany({
-        where: { restaurant_id: restaurantId, status: "PAID", paid_at: { gte: today, lt: tomorrow } },
-        select: { subtotal: true, cgst_amount: true, sgst_amount: true },
-      }),
-      prisma.order.findMany({
-        where: { restaurant_id: restaurantId, status: "PAID", paid_at: { gte: yesterday, lt: today } },
-        select: { subtotal: true },
-      }),
-      prisma.table.count({
-        where: { restaurant_id: restaurantId, orders: { some: { status: "OPEN" } } },
-      }),
-      prisma.table.count({ where: { restaurant_id: restaurantId } }),
-      prisma.order.findMany({
-        where: { restaurant_id: restaurantId, status: { in: ["PAID", "BILLED"] } },
-        orderBy: { created_at: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          invoice_number: true,
-          total_amount: true,
-          subtotal: true,
-          cgst_amount: true,
-          sgst_amount: true,
-          payment_mode: true,
-          status: true,
-          paid_at: true,
-          created_at: true,
-          order_type: true,
-          table: { select: { table_number: true } },
-          order_items: { select: { id: true } },
-        },
-      }),
-      prisma.order.findMany({
-        where: {
-          restaurant_id: restaurantId,
-          status: "PAID",
-          paid_at: { gte: today, lt: tomorrow },
-        },
-        select: { paid_at: true, subtotal: true },
-      }),
-    ]);
+    const todayOrders = await prisma.order.findMany({
+      where: { restaurant_id: restaurantId, status: "PAID", paid_at: { gte: today, lt: tomorrow } },
+      select: { subtotal: true, cgst_amount: true, sgst_amount: true },
+    });
+    
+    const yesterdayOrders = await prisma.order.findMany({
+      where: { restaurant_id: restaurantId, status: "PAID", paid_at: { gte: yesterday, lt: today } },
+      select: { subtotal: true },
+    });
+    
+    const activeTables = await prisma.table.count({
+      where: { restaurant_id: restaurantId, orders: { some: { status: "OPEN" } } },
+    });
+    
+    const totalTables = await prisma.table.count({ where: { restaurant_id: restaurantId } });
+    
+    const recentOrders = await prisma.order.findMany({
+      where: { restaurant_id: restaurantId, status: { in: ["PAID", "BILLED"] } },
+      orderBy: { created_at: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        invoice_number: true,
+        total_amount: true,
+        subtotal: true,
+        cgst_amount: true,
+        sgst_amount: true,
+        payment_mode: true,
+        status: true,
+        paid_at: true,
+        created_at: true,
+        order_type: true,
+        table: { select: { table_number: true } },
+        order_items: { select: { id: true } },
+      },
+    });
+    
+    const hourlyOrders = await prisma.order.findMany({
+      where: {
+        restaurant_id: restaurantId,
+        status: "PAID",
+        paid_at: { gte: today, lt: tomorrow },
+      },
+      select: { paid_at: true, subtotal: true },
+    });
 
     const todayRevenue = todayOrders.reduce((sum, o) => sum + o.subtotal, 0);
     const yesterdayRevenue = yesterdayOrders.reduce((sum, o) => sum + o.subtotal, 0);

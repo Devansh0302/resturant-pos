@@ -18,50 +18,43 @@ export async function GET() {
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const [
-      totalTenants,
-      activeTenants,
-      suspendedTenants,
-      totalOrders,
-      revenueResult,
-      expiringSoon,
-      recentLogs,
-      topTenantsAggr,
-      recentOrders,
-    ] = await Promise.all([
-      prisma.restaurant.count(),
-      prisma.restaurant.count({ where: { subscription_status: 'ACTIVE' } }),
-      prisma.restaurant.count({ where: { subscription_status: 'SUSPENDED' } }),
-      prisma.order.count({ where: { payment_status: 'PAID' } }),
-      prisma.order.aggregate({
-        _sum: { total_amount: true },
-        where: { payment_status: 'PAID' },
-      }),
-      prisma.restaurant.findMany({
-        where: {
-          subscription_status: 'ACTIVE',
-          subscription_end_date: { lte: thirtyDaysFromNow, gte: now },
-        },
-        select: { id: true, name: true, subscription_end_date: true },
-        orderBy: { subscription_end_date: 'asc' },
-      }),
-      prisma.platformLog.findMany({
-        orderBy: { created_at: 'desc' },
-        take: 10,
-        include: { restaurant: { select: { name: true } } },
-      }),
-      prisma.order.groupBy({
-        by: ['restaurant_id'],
-        _sum: { total_amount: true },
-        where: { payment_status: 'PAID' },
-        orderBy: { _sum: { total_amount: 'desc' } },
-        take: 5,
-      }),
-      prisma.order.findMany({
-        where: { payment_status: 'PAID', created_at: { gte: sevenDaysAgo } },
-        select: { total_amount: true, created_at: true },
-      })
-    ]);
+    const totalTenants = await prisma.restaurant.count();
+    const activeTenants = await prisma.restaurant.count({ where: { subscription_status: 'ACTIVE' } });
+    const suspendedTenants = await prisma.restaurant.count({ where: { subscription_status: 'SUSPENDED' } });
+    const totalOrders = await prisma.order.count({ where: { payment_status: 'PAID' } });
+    
+    const revenueResult = await prisma.order.aggregate({
+      _sum: { total_amount: true },
+      where: { payment_status: 'PAID' },
+    });
+    
+    const expiringSoon = await prisma.restaurant.findMany({
+      where: {
+        subscription_status: 'ACTIVE',
+        subscription_end_date: { lte: thirtyDaysFromNow, gte: now },
+      },
+      select: { id: true, name: true, subscription_end_date: true },
+      orderBy: { subscription_end_date: 'asc' },
+    });
+    
+    const recentLogs = await prisma.platformLog.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 10,
+      include: { restaurant: { select: { name: true } } },
+    });
+    
+    const topTenantsAggr = await prisma.order.groupBy({
+      by: ['restaurant_id'],
+      _sum: { total_amount: true },
+      where: { payment_status: 'PAID' },
+      orderBy: { _sum: { total_amount: 'desc' } },
+      take: 5,
+    });
+    
+    const recentOrders = await prisma.order.findMany({
+      where: { payment_status: 'PAID', created_at: { gte: sevenDaysAgo } },
+      select: { total_amount: true, created_at: true },
+    });
 
     // Format Top Tenants
     const topTenantIds = topTenantsAggr.map(t => t.restaurant_id).filter(Boolean) as string[];
