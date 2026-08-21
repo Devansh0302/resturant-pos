@@ -2,15 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, TrendingUp, DollarSign, ShoppingBag, Award, RefreshCw } from 'lucide-react';
+import { Calendar, TrendingUp, DollarSign, ShoppingBag, Award, RefreshCw, Download } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { useSession } from 'next-auth/react';
 
 const COLORS = ['#10B981', '#F97316', '#3B82F6'];
 
 export default function ReportsPage() {
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role;
+  const canDownload = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(role);
+
   const [period, setPeriod] = useState('today');
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
   const [reportData, setReportData] = useState<any>(null);
@@ -55,6 +60,81 @@ export default function ReportsPage() {
     }
   }, [period, customDate]);
 
+  const handleDownloadReport = () => {
+    if (!reportData) return;
+
+    const periodLabel = period === 'custom' ? customDate : period;
+    const lines: string[] = [];
+
+    // Header
+    lines.push(`Sales Report - ${periodLabel.toUpperCase()}`);
+    lines.push(`Generated: ${new Date().toLocaleString('en-IN')}`);
+    lines.push('');
+
+    // Summary
+    lines.push('=== SUMMARY ===');
+    lines.push(`Total Sales,"${(reportData.total_revenue || 0).toLocaleString('en-IN')}"`);
+    lines.push(`Total Orders,${reportData.total_orders || 0}`);
+    lines.push(`GST Collected,"${(reportData.total_gst || 0).toLocaleString('en-IN')}"`);
+    lines.push('');
+
+    // Payment Split
+    if (reportData.payment_split) {
+      lines.push('=== PAYMENT SPLIT ===');
+      lines.push('Mode,Amount');
+      lines.push(`Cash,"${(reportData.payment_split.CASH || 0).toLocaleString('en-IN')}"`);
+      lines.push(`UPI,"${(reportData.payment_split.UPI || 0).toLocaleString('en-IN')}"`);
+      lines.push(`Card,"${(reportData.payment_split.CARD || 0).toLocaleString('en-IN')}"`);
+      lines.push('');
+    }
+
+    // Top Items
+    if (reportData.top_items?.length) {
+      lines.push('=== TOP ITEMS ===');
+      lines.push('#,Item,Qty Sold,Revenue');
+      reportData.top_items.forEach((item: any, i: number) => {
+        lines.push(`${i + 1},"${item.name}",${item.quantity},"${(item.revenue || 0).toLocaleString('en-IN')}"`);
+      });
+      lines.push('');
+    }
+
+    // Staff Performance
+    if (reportData.staff_performance?.length) {
+      lines.push('=== STAFF PERFORMANCE ===');
+      lines.push('Name,Role,Tables,Orders,Revenue');
+      reportData.staff_performance.forEach((s: any) => {
+        lines.push(`"${s.name}",${s.role},${s.tablesHandled},${s.ordersHandled},"${(s.revenue || 0).toLocaleString('en-IN')}"`);
+      });
+      lines.push('');
+    }
+
+    // Hourly / Daily breakdown
+    if (period === 'today' && reportData.hourly?.length) {
+      lines.push('=== HOURLY BREAKDOWN ===');
+      lines.push('Hour,Revenue,Orders');
+      reportData.hourly.forEach((h: any) => {
+        if (h.revenue > 0 || h.orders > 0) {
+          lines.push(`${h.hour},"${h.revenue.toLocaleString('en-IN')}",${h.orders}`);
+        }
+      });
+    } else if (reportData.daily?.length) {
+      lines.push('=== DAILY BREAKDOWN ===');
+      lines.push('Date,Revenue');
+      reportData.daily.forEach((d: any) => {
+        lines.push(`${d.date},"${d.revenue.toLocaleString('en-IN')}"`);
+      });
+    }
+
+    const csvContent = lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report_${periodLabel}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const paymentData = reportData?.payment_split
     ? [
         { name: 'Cash', value: reportData.payment_split.CASH },
@@ -80,6 +160,17 @@ export default function ReportsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {canDownload && (
+            <button
+              onClick={handleDownloadReport}
+              disabled={!reportData || isLoading}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer disabled:opacity-50"
+              style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}
+            >
+              <Download className="w-4 h-4" />
+              Download Report
+            </button>
+          )}
           <button
             onClick={() => fetchReport(true)}
             disabled={isRefreshing}
