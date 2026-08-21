@@ -97,8 +97,8 @@ export async function GET() {
     const todayGST = todayOrders.reduce((sum, o) => sum + o.cgst_amount + o.sgst_amount, 0);
     const avgOrderValue = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
 
-    const hourlyData = Array.from({ length: 18 }, (_, i) => ({
-      hour: `${(i + 6).toString().padStart(2, "0")}:00`,
+    const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+      hour: `${i.toString().padStart(2, "0")}:00`,
       revenue: 0,
       orders: 0,
     }));
@@ -108,8 +108,8 @@ export async function GET() {
         // Convert UTC timestamp to IST hour for display
         const istTime = new Date(order.paid_at.getTime() + IST_OFFSET_MS);
         const hour = istTime.getUTCHours();
-        const idx = hour - 6;
-        if (idx >= 0 && idx < 18) {
+        const idx = hour;
+        if (idx >= 0 && idx < 24) {
           hourlyData[idx].revenue += order.subtotal;
           hourlyData[idx].orders += 1;
         }
