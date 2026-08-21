@@ -143,6 +143,8 @@ model Order {
   staff_id        String
   invoice_number  String      @unique
   guest_count     Int         @default(1)
+  customer_name   String?
+  customer_contact String?
   status          String      @default("OPEN")
   subtotal        Float       @default(0)
   cgst_amount     Float       @default(0)

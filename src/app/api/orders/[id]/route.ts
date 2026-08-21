@@ -137,6 +137,18 @@ export async function PATCH(
       return NextResponse.json(order);
     }
 
+    // Update customer details
+    if (body.action === 'UPDATE_CUSTOMER') {
+      const order = await prisma.order.update({
+        where: { id },
+        data: {
+          customer_name: body.customer_name,
+          customer_contact: body.customer_contact,
+        }
+      });
+      return NextResponse.json(order);
+    }
+
     return NextResponse.json({ error: 'No valid update' }, { status: 400 });
   } catch (error) {
     console.error('PATCH /api/orders/[id] error:', error);

@@ -58,6 +58,9 @@ export default function OrderPage() {
   const [paymentMode, setPaymentMode] = useState<string>('CASH');
   const [splitPayments, setSplitPayments] = useState({ CASH: 0, UPI: 0, CARD: 0 });
   const [customerName, setCustomerName] = useState<string>('');
+  const [customerContact, setCustomerContact] = useState<string>('');
+  const [showCustomerDetailsModal, setShowCustomerDetailsModal] = useState<boolean>(false);
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isPrintingKOT, setIsPrintingKOT] = useState(false);
   const [isBillingLoading, setIsBillingLoading] = useState(false);
@@ -155,7 +158,10 @@ export default function OrderPage() {
         setGuestCount(table.activeOrder.guest_count);
         if (table.activeOrder.discount_request_percent) {
            setDiscountPercent(table.activeOrder.discount_request_percent);
-        } else if (table.activeOrder.discount_amount && table.activeOrder.subtotal) {
+        }
+        if (table.activeOrder.customer_name) setCustomerName(table.activeOrder.customer_name);
+        if (table.activeOrder.customer_contact) setCustomerContact(table.activeOrder.customer_contact);
+        if (table.activeOrder.discount_amount && table.activeOrder.subtotal) {
            setDiscountPercent((table.activeOrder.discount_amount / table.activeOrder.subtotal) * 100);
         }
         if (table.activeOrder.discount_request_status) {
@@ -336,12 +342,31 @@ export default function OrderPage() {
       if (!currentOrderId) { toast.error('No order to bill'); return; }
       const res = await fetch(`/api/orders/${currentOrderId}/bill`, { method: 'POST' });
       if (res.ok) {
-        setShowBillModal(true);
+        setShowCustomerDetailsModal(true);
       } else {
         toast.error('Failed to generate bill');
       }
     } catch {
       toast.error('Failed to generate bill');
+    } finally {
+      setIsBillingLoading(false);
+    }
+  };
+
+  const handleContinueToBill = async () => {
+    if (!customerName.trim()) { toast.error('Customer Name is required'); return; }
+    
+    setIsBillingLoading(true);
+    try {
+      await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'UPDATE_CUSTOMER', customer_name: customerName, customer_contact: customerContact })
+      });
+      setShowCustomerDetailsModal(false);
+      setShowBillModal(true);
+    } catch {
+      toast.error('Failed to save customer details');
     } finally {
       setIsBillingLoading(false);
     }
@@ -472,6 +497,8 @@ export default function OrderPage() {
 
   const handlePrintBill = () => {
     window.print();
+    setShowBillModal(false);
+    setShowPaymentModal(true);
   };
 
   const handleWhatsApp = () => {
@@ -907,13 +934,19 @@ export default function OrderPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={handleGenerateBill}
+                    onClick={() => {
+                      if (tableInfo?.activeOrder?.bill_requested) {
+                         setShowCustomerDetailsModal(true);
+                      } else {
+                         handleGenerateBill();
+                      }
+                    }}
                     disabled={isBillingLoading || items.length === 0}
                     className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ backgroundColor: '#10B981' }}
                   >
                     {isBillingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                    {isBillingLoading ? 'Generating...' : 'Generate Bill'}
+                    {isBillingLoading ? 'Generating...' : (tableInfo?.activeOrder?.bill_requested ? 'View / Settle Bill' : 'Generate Bill')}
                   </button>
                 )}
                 <button
@@ -1030,23 +1063,60 @@ export default function OrderPage() {
 
             {/* Payment Controls (no-print) */}
             <div className="no-print px-5 py-4 space-y-4" style={{ borderTop: '1px solid #E5E7EB' }}>
-              {/* Customer Name */}
-              <div>
-                <p className="text-xs font-medium mb-2" style={{ color: '#6B7280' }}>Customer Name (Optional)</p>
-                <input
-                  type="text"
-                  placeholder="Enter name for the bill..."
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-                  style={{ border: '1px solid #E5E7EB', color: '#1A1A1A' }}
-                />
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePrintBill}
+                  className="flex-1 py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Bill
+                </button>
+                <button
+                  onClick={handleWhatsApp}
+                  className="w-12 py-3 rounded-lg flex items-center justify-center transition-all cursor-pointer"
+                  style={{ backgroundColor: '#ECFDF5', color: '#16A34A' }}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
               </div>
+              <button
+                onClick={() => setShowBillModal(false)}
+                className="w-full py-2 text-xs cursor-pointer"
+                style={{ color: '#6B7280' }}
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
-              {/* Payment Mode */}
+      {/* ──── PAYMENT MODAL ──── */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm rounded-xl p-5"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Settle Payment</h3>
+              <button onClick={() => setShowPaymentModal(false)} className="cursor-pointer text-gray-500 hover:text-gray-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <span className="text-sm font-medium text-gray-600">Total Amount</span>
+                <span className="text-lg font-bold text-gray-900">₹{gst.total.toFixed(2)}</span>
+              </div>
+              
               <div>
                 <p className="text-xs font-medium mb-2" style={{ color: '#6B7280' }}>Payment Mode</p>
-                <div className="flex gap-2 mb-4">
+                <div className="grid grid-cols-2 gap-2 mb-4">
                   {[
                     { mode: 'CASH', icon: Banknote, label: 'Cash' },
                     { mode: 'UPI', icon: Smartphone, label: 'UPI' },
@@ -1056,7 +1126,7 @@ export default function OrderPage() {
                     <button
                       key={mode}
                       onClick={() => setPaymentMode(mode)}
-                      className="flex-1 py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       style={{
                         backgroundColor: paymentMode === mode ? '#10B981' : '#FFFFFF',
                         color: paymentMode === mode ? '#FFFFFF' : '#6B7280',
@@ -1110,43 +1180,74 @@ export default function OrderPage() {
                   </div>
                 )}
               </div>
-
-              {/* Actions */}
+              
               <button
                 onClick={handleConfirmPayment}
                 disabled={isProcessingPayment}
-                className="w-full py-3 rounded-lg text-sm font-bold text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-3 rounded-lg text-sm font-bold text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 mt-4"
                 style={{ backgroundColor: '#10B981' }}
               >
                 {isProcessingPayment ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Confirm Payment — ₹{gst.total.toFixed(2)}
+                Pay & Clear Table
               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
-              <div className="flex gap-2">
-                <button
-                  onClick={handlePrintBill}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  style={{ backgroundColor: '#F3F4F6', color: '#1A1A1A' }}
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  Print Bill
-                </button>
-                <button
-                  onClick={handleWhatsApp}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  style={{ backgroundColor: '#ECFDF5', color: '#16A34A' }}
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  WhatsApp
-                </button>
+      {/* ──── CUSTOMER DETAILS MODAL ──── */}
+      {showCustomerDetailsModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm rounded-xl p-5"
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Customer Details</h3>
+              <button onClick={() => setShowCustomerDetailsModal(false)} className="cursor-pointer text-gray-500 hover:text-gray-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  placeholder="Customer Name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm outline-none"
+                />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Contact <span className="text-gray-400 font-normal">(Optional)</span></label>
+                <input
+                  type="text"
+                  placeholder="Phone Number"
+                  value={customerContact}
+                  onChange={(e) => setCustomerContact(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg text-sm outline-none"
+                />
+              </div>
+            </div>
 
+            <div className="mt-6 flex justify-end gap-3">
               <button
-                onClick={() => setShowBillModal(false)}
-                className="w-full py-2 text-xs cursor-pointer"
-                style={{ color: '#6B7280' }}
+                onClick={() => setShowCustomerDetailsModal(false)}
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors cursor-pointer"
               >
-                Close
+                Cancel
+              </button>
+              <button
+                onClick={handleContinueToBill}
+                disabled={isBillingLoading || !customerName.trim()}
+                className="px-4 py-2 text-sm font-medium rounded-lg text-white bg-green-500 hover:bg-green-600 transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isBillingLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                Continue to Bill
               </button>
             </div>
           </motion.div>
