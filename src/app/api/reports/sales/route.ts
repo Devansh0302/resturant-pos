@@ -60,9 +60,9 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Hourly breakdown (6AM to 11PM)
-    const hourlyData = Array.from({ length: 18 }, (_, i) => ({
-      hour: `${(i + 6).toString().padStart(2, '0')}:00`,
+    // Hourly breakdown (24 hours)
+    const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+      hour: `${i.toString().padStart(2, '0')}:00`,
       revenue: 0,
       orders: 0,
     }));
@@ -72,9 +72,9 @@ export async function GET(req: NextRequest) {
         // Convert UTC to IST for correct hour bucket
         const istTime = new Date(order.paid_at.getTime() + IST_OFFSET_MS);
         const hour = istTime.getUTCHours();
-        const idx = hour - 6;
-        if (idx >= 0 && idx < 18) {
-          hourlyData[idx].revenue += order.subtotal;
+        const idx = hour;
+        if (idx >= 0 && idx < 24) {
+          hourlyData[idx].revenue += order.total_amount || 0;
           hourlyData[idx].orders += 1;
         }
       }
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     orders.forEach(order => {
       if (order.paid_at) {
         const dateKey = order.paid_at.toISOString().split('T')[0];
-        dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + order.subtotal);
+        dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + (order.total_amount || 0));
       }
     });
 
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
     const paymentSplit = { CASH: 0, UPI: 0, CARD: 0 };
     orders.forEach(order => {
       if (order.payment_mode) {
-        paymentSplit[order.payment_mode as keyof typeof paymentSplit] += order.subtotal;
+        paymentSplit[order.payment_mode as keyof typeof paymentSplit] += (order.total_amount || 0);
       }
     });
 
