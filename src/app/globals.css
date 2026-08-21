@@ -508,31 +508,37 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─── Print Styles ──────────────────────────────── */
 @media print {
-  /* Hide everything first */
+  /* Reset height to 0 so the POS layout doesn't push the printer to 2 pages */
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+  /* Visually hide everything in the normal layout */
   body * {
     visibility: hidden;
   }
 
-  /* Show only the print area */
+  /* Show only the print area and its children */
   .print-area,
   .print-area * {
     visibility: visible !important;
   }
 
+  /* Break out of the document flow and position at the very top left */
   .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm;
-    padding: 4mm;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    padding: 4mm !important;
+    margin: 0 !important;
     font-size: 12px;
     line-height: 1.4;
     color: #000 !important;
