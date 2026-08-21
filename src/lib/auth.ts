@@ -44,7 +44,7 @@ export const authOptions: NextAuthOptions = {
             id: targetTenantAdmin.id,
             name: targetTenantAdmin.name,
             email: targetTenantAdmin.email,
-            role: targetTenantAdmin.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF",
+            role: targetTenantAdmin.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF" | "MANAGER",
             restaurantId: targetTenantAdmin.restaurant_id,
             impersonatedBy: staff.id, // Store super admin ID
             impersonatedByName: staff.name,
@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
           id: staff.id,
           name: staff.name,
           email: staff.email,
-          role: staff.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF" | "SUPER_ADMIN",
+          role: staff.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF" | "SUPER_ADMIN" | "MANAGER",
           restaurantId: staff.restaurant_id,
           has_seen_tour: staff.has_seen_tour,
         };

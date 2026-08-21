@@ -62,6 +62,10 @@ export async function GET() {
               id: activeOrder.id,
               guest_count: activeOrder.guest_count,
               total_amount: activeOrder.total_amount,
+              subtotal: activeOrder.subtotal,
+              discount_amount: activeOrder.discount_amount,
+              discount_request_percent: activeOrder.discount_request_percent,
+              discount_request_status: activeOrder.discount_request_status,
               created_at: activeOrder.created_at.toISOString(),
               item_count: activeOrder.order_items.length,
               staff: activeOrder.staff ? {

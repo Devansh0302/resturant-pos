@@ -62,8 +62,20 @@ export default function OrderPage() {
   const [isBillingLoading, setIsBillingLoading] = useState(false);
   const [selectedItemForVariant, setSelectedItemForVariant] = useState<MenuItem | null>(null);
 
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [customDiscount, setCustomDiscount] = useState<string>('');
+  const [discountRequestStatus, setDiscountRequestStatus] = useState<string>('NONE');
+
+  const role = session?.user?.role;
+  const restaurantId = (session?.user as any)?.restaurantId;
+  const isYangkiez = restaurantId === 'cmt1yrr3b0000l504jzjmwajb';
+  const isAdminOrManager = role === 'ADMIN' || role === 'SUPER_ADMIN' || (role === 'MANAGER' && isYangkiez);
+  const isCashier = role === 'CASHIER';
+
   const subtotal = getSubtotal();
-  const gst = calculateGST(subtotal);
+  const discountAmount = isYangkiez ? (subtotal * discountPercent) / 100 : 0;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const gst = calculateGST(discountedSubtotal);
 
   // Use a ref to track saving state in background intervals without closure staleness
   const isSavingRef = useRef(false);
@@ -113,6 +125,12 @@ export default function OrderPage() {
       if (table?.activeOrder) {
         setOrderId(table.activeOrder.id);
         setGuestCount(table.activeOrder.guest_count);
+        if (table.activeOrder.discount_amount && table.activeOrder.subtotal) {
+           setDiscountPercent((table.activeOrder.discount_amount / table.activeOrder.subtotal) * 100);
+        }
+        if (table.activeOrder.discount_request_status) {
+           setDiscountRequestStatus(table.activeOrder.discount_request_status);
+        }
         const mappedItems = table.activeOrder.order_items.map((oi: any) => ({
           id: oi.id,
           menu_item_id: oi.menu_item_id,
@@ -258,6 +276,7 @@ export default function OrderPage() {
               })),
               notes,
               guest_count: guestCount,
+              discount_amount: discountAmount,
             }),
           });
         } else {
@@ -276,6 +295,7 @@ export default function OrderPage() {
                 variant_name: i.variant_name,
               })),
               notes,
+              discount_amount: discountAmount,
             }),
           });
           const data = await res.json();
@@ -294,6 +314,32 @@ export default function OrderPage() {
       toast.error('Failed to generate bill');
     } finally {
       setIsBillingLoading(false);
+    }
+  };
+
+  const handleRequestDiscount = async () => {
+    if (!orderId) {
+      toast.error('Save the order first');
+      return;
+    }
+    if (discountPercent <= 0) {
+      toast.error('Enter a valid discount percentage');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discount_request_percent: discountPercent })
+      });
+      if (res.ok) {
+        setDiscountRequestStatus('PENDING');
+        toast.success('Discount request sent to Manager');
+      } else {
+        toast.error('Failed to request discount');
+      }
+    } catch {
+      toast.error('Failed to request discount');
     }
   };
 
@@ -660,6 +706,101 @@ export default function OrderPage() {
                   <span style={{ color: '#9CA3AF' }}>SGST 2.5%</span>
                   <span style={{ fontFamily: 'var(--font-mono)', color: '#9CA3AF' }}>₹{gst.sgst.toFixed(2)}</span>
                 </div>
+                
+                {/* Discount Section (Only for Yangkiez) */}
+                {isYangkiez && (isAdminOrManager || isCashier) && (
+                  <div className="pt-2 border-t border-dashed" style={{ borderColor: '#E5E7EB' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium" style={{ color: '#6B7280' }}>Discount</span>
+                      {discountPercent > 0 && (
+                        <span className="text-xs" style={{ color: '#F59E0B' }}>-{discountPercent}% (₹{discountAmount.toFixed(2)})</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setDiscountPercent(5)} 
+                        className={`flex-1 py-1 text-xs rounded border transition-colors ${discountPercent === 5 ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}
+                      >
+                        5%
+                      </button>
+                      <button 
+                        onClick={() => setDiscountPercent(10)} 
+                        className={`flex-1 py-1 text-xs rounded border transition-colors ${discountPercent === 10 ? 'bg-amber-100 border-amber-300 text-amber-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}
+                      >
+                        10%
+                      </button>
+                      
+                      {isAdminOrManager ? (
+                        <div className="flex-1 flex gap-1">
+                          <input 
+                            type="number" 
+                            placeholder="Custom %" 
+                            className="w-full px-2 py-1 text-xs rounded border outline-none"
+                            style={{ borderColor: '#E5E7EB' }}
+                            value={customDiscount}
+                            onChange={(e) => {
+                               setCustomDiscount(e.target.value);
+                               if (e.target.value && !isNaN(Number(e.target.value))) {
+                                 setDiscountPercent(Number(e.target.value));
+                               } else {
+                                 setDiscountPercent(0);
+                               }
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-[2] flex gap-1">
+                          <input 
+                            type="number" 
+                            placeholder="Request Custom %" 
+                            className="w-full px-2 py-1 text-xs rounded border outline-none"
+                            style={{ borderColor: '#E5E7EB' }}
+                            value={customDiscount}
+                            disabled={discountRequestStatus === 'PENDING'}
+                            onChange={(e) => {
+                               setCustomDiscount(e.target.value);
+                               if (e.target.value && !isNaN(Number(e.target.value))) {
+                                 setDiscountPercent(Number(e.target.value));
+                               } else {
+                                 setDiscountPercent(0);
+                               }
+                            }}
+                          />
+                          {customDiscount && Number(customDiscount) > 0 && (
+                            <button
+                              onClick={handleRequestDiscount}
+                              disabled={discountRequestStatus === 'PENDING'}
+                              className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-600 border border-blue-200 transition-colors disabled:opacity-50"
+                            >
+                              Request
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      
+                      {discountPercent > 0 && isAdminOrManager && (
+                        <button 
+                          onClick={() => { setDiscountPercent(0); setCustomDiscount(''); }}
+                          className="px-2 py-1 text-xs rounded bg-red-50 text-red-600 border border-red-200"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    {discountRequestStatus === 'PENDING' && (
+                      <div className="mt-2 text-xs font-medium text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">
+                        Discount Request Pending Approval...
+                      </div>
+                    )}
+                    {discountRequestStatus === 'REJECTED' && (
+                      <div className="mt-2 text-xs font-medium text-red-600 bg-red-50 p-2 rounded border border-red-200 flex justify-between items-center">
+                        Discount Request Rejected
+                        <button onClick={() => setDiscountRequestStatus('NONE')} className="text-red-800 underline">Dismiss</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-between text-lg font-bold pt-2" style={{ borderTop: '1px solid #E5E7EB' }}>
                   <span style={{ fontFamily: 'var(--font-heading)', color: '#1A1A1A' }}>Grand Total</span>
                   <span style={{ fontFamily: 'var(--font-mono)', color: '#F97316' }}>₹{gst.total.toFixed(2)}</span>

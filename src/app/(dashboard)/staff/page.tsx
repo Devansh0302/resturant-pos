@@ -35,12 +35,12 @@ export default function StaffPage() {
           <p className="section-subtitle">Manage restaurant employees, roles & credentials</p>
         </div>
       </div>
-      <StaffManagement />
+      <StaffManagement isYangkiez={(session?.user as any)?.restaurantId === 'cmt1yrr3b0000l504jzjmwajb'} />
     </motion.div>
   );
 }
 
-function StaffManagement() {
+function StaffManagement({ isYangkiez }: { isYangkiez: boolean }) {
   const [staff, setStaff] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'WAITER' });
@@ -138,6 +138,7 @@ function StaffManagement() {
   const getRoleConfig = (role: string) => {
     switch (role) {
       case 'ADMIN': return { bg: 'linear-gradient(135deg, #10B981, #059669)', badge: 'badge-emerald', label: 'Admin', icon: ShieldCheck };
+      case 'MANAGER': return { bg: 'linear-gradient(135deg, #3B82F6, #2563EB)', badge: 'badge-blue', label: 'Manager', icon: User };
       case 'CASHIER': return { bg: 'linear-gradient(135deg, #F97316, #EA580C)', badge: 'badge-orange', label: 'Cashier', icon: Calculator };
       case 'KITCHEN': return { bg: 'linear-gradient(135deg, #8B5CF6, #7C3AED)', badge: 'badge-purple', label: 'Kitchen', icon: ChefHat };
       default: return { bg: 'linear-gradient(135deg, #6B7280, #4B5563)', badge: 'badge-gray', label: 'Waiter', icon: ConciergeBell };
@@ -303,6 +304,7 @@ function StaffManagement() {
                   <label className="text-xs font-medium mb-1.5 block" style={{ color: '#374151' }}>Role</label>
                   <select value={formData.role} onChange={e => setFormData({ ...formData, role: e.target.value })} className="premium-select">
                     <option value="ADMIN">Admin</option>
+                    {isYangkiez && <option value="MANAGER">Manager</option>}
                     <option value="CASHIER">Cashier</option>
                     <option value="WAITER">Waiter</option>
                     <option value="KITCHEN">Kitchen</option>

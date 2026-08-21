@@ -39,8 +39,10 @@ export async function POST(req: NextRequest) {
 
     // Calculate totals
     const subtotal = items?.reduce((sum: number, i: any) => sum + i.quantity * i.unit_price, 0) || 0;
+    const discount_amount = body.discount_amount || 0;
+    const discountedSubtotal = Math.max(0, subtotal - discount_amount);
     const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
-    const gst = calculateGST(subtotal, restaurant?.cgst_rate || 2.5, restaurant?.sgst_rate || 2.5);
+    const gst = calculateGST(discountedSubtotal, restaurant?.cgst_rate || 2.5, restaurant?.sgst_rate || 2.5);
 
     const order = await prisma.order.create({
       data: {
@@ -51,7 +53,8 @@ export async function POST(req: NextRequest) {
         invoice_number,
         guest_count: guest_count || 1,
         status: 'OPEN',
-        subtotal: gst.subtotal,
+        subtotal: subtotal,
+        discount_amount: discount_amount,
         cgst_amount: gst.cgst,
         sgst_amount: gst.sgst,
         total_amount: gst.total,

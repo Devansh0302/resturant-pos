@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Grid3x3, Users, Clock, MapPin, Combine, Check, X, Unlink, Printer, Eye, RefreshCcw, User, Plus, Pencil } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabase';
 
 interface TableData {
@@ -20,6 +21,8 @@ interface TableData {
     created_at: string;
     item_count: number;
     staff?: { id: string; name: string };
+    discount_request_percent?: number | null;
+    discount_request_status?: string | null;
   };
 }
 
@@ -30,6 +33,12 @@ export default function TablesPage() {
   const [tables, setTables] = useState<TableData[]>([]);
   const [activeFilter, setActiveFilter] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
+
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  const restaurantId = (session?.user as any)?.restaurantId;
+  const isYangkiez = restaurantId === 'cmt1yrr3b0000l504jzjmwajb';
+  const isAdminOrManager = role === 'ADMIN' || role === 'SUPER_ADMIN' || (role === 'MANAGER' && isYangkiez);
 
   // Merge Mode state
   const [isMergeMode, setIsMergeMode] = useState(false);
@@ -50,6 +59,11 @@ export default function TablesPage() {
   const [editTableCapacity, setEditTableCapacity] = useState('');
   const [editTableArea, setEditTableArea] = useState<'INDOOR' | 'OUTDOOR' | 'ROOFTOP'>('INDOOR');
   const [isEditingTable, setIsEditingTable] = useState(false);
+
+  // Discount Approval State
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [discountReviewOrder, setDiscountReviewOrder] = useState<any>(null);
+  const [isApprovingDiscount, setIsApprovingDiscount] = useState(false);
 
   useEffect(() => {
     fetchTables();
@@ -257,6 +271,36 @@ export default function TablesPage() {
     }
   };
 
+  const handleReviewDiscount = (e: React.MouseEvent, order: any) => {
+    e.stopPropagation();
+    setDiscountReviewOrder(order);
+    setIsDiscountModalOpen(true);
+  };
+
+  const submitDiscountReview = async (status: 'APPROVED' | 'REJECTED') => {
+    if (!discountReviewOrder) return;
+    setIsApprovingDiscount(true);
+    try {
+      const res = await fetch(`/api/orders/${discountReviewOrder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discount_request_status: status })
+      });
+      if (res.ok) {
+        toast.success(`Discount request ${status.toLowerCase()}`);
+        setIsDiscountModalOpen(false);
+        setDiscountReviewOrder(null);
+        fetchTables();
+      } else {
+        toast.error('Failed to review discount');
+      }
+    } catch {
+      toast.error('Failed to review discount');
+    } finally {
+      setIsApprovingDiscount(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -317,7 +361,13 @@ export default function TablesPage() {
             </button>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button 
+              onClick={() => router.push('/orders/takeaway')}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              Takeaway
+            </button>
             <button
               onClick={() => setIsMergeMode(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 flex items-center gap-1.5 transition-colors border border-blue-200 cursor-pointer"
@@ -453,6 +503,15 @@ export default function TablesPage() {
                       ₹{table.activeOrder.total_amount.toLocaleString('en-IN')}
                     </span>
                   </div>
+
+                  {isAdminOrManager && table.activeOrder.discount_request_status === 'PENDING' && (
+                    <button
+                      onClick={(e) => handleReviewDiscount(e, table.activeOrder)}
+                      className="w-full mt-2 py-1.5 bg-amber-50 text-amber-700 text-xs font-semibold rounded-md border border-amber-200 hover:bg-amber-100 transition-colors"
+                    >
+                      Review Discount Request
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="mt-3" style={{ borderTop: '1px solid #F3F4F6', paddingTop: '12px' }}>
@@ -638,6 +697,59 @@ export default function TablesPage() {
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Discount Approval Modal */}
+      <AnimatePresence>
+        {isDiscountModalOpen && discountReviewOrder && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <h3 className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)', color: '#1A1A1A' }}>
+                  Review Discount Request
+                </h3>
+                <button onClick={() => setIsDiscountModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <p className="text-gray-600 mb-6 text-center">
+                  Cashier is requesting a <strong className="text-amber-600 text-xl">{discountReviewOrder.discount_request_percent}%</strong> discount for this order.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => submitDiscountReview('REJECTED')}
+                    disabled={isApprovingDiscount}
+                    className="flex-1 px-4 py-2.5 rounded-xl font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-colors disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => submitDiscountReview('APPROVED')}
+                    disabled={isApprovingDiscount}
+                    className="flex-1 px-4 py-2.5 rounded-xl font-medium text-white bg-amber-500 hover:bg-amber-600 transition-colors disabled:opacity-50"
+                  >
+                    {isApprovingDiscount ? 'Processing...' : 'Approve'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>

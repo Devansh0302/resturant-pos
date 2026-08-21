@@ -29,6 +29,51 @@ export async function PATCH(
       return NextResponse.json(order);
     }
 
+    // Handle discount request status changes
+    if (body.discount_request_status) {
+      if (body.discount_request_status === 'APPROVED') {
+        const orderRecord = await prisma.order.findUnique({ where: { id } });
+        if (!orderRecord || !orderRecord.discount_request_percent) {
+          return NextResponse.json({ error: 'No discount request found' }, { status: 400 });
+        }
+        
+        const discount_amount = (orderRecord.subtotal * orderRecord.discount_request_percent) / 100;
+        const discountedSubtotal = Math.max(0, orderRecord.subtotal - discount_amount);
+        const restaurant = await prisma.restaurant.findUnique({ where: { id: orderRecord.restaurant_id } });
+        const gst = calculateGST(discountedSubtotal, restaurant?.cgst_rate || 2.5, restaurant?.sgst_rate || 2.5);
+        
+        const order = await prisma.order.update({
+          where: { id },
+          data: {
+            discount_amount,
+            discount_request_status: 'APPROVED',
+            cgst_amount: gst.cgst,
+            sgst_amount: gst.sgst,
+            total_amount: gst.total,
+          }
+        });
+        return NextResponse.json(order);
+      } else if (body.discount_request_status === 'REJECTED') {
+        const order = await prisma.order.update({
+          where: { id },
+          data: { discount_request_status: 'REJECTED' }
+        });
+        return NextResponse.json(order);
+      }
+    }
+    
+    // Handle new discount requests
+    if (body.discount_request_percent !== undefined) {
+      const order = await prisma.order.update({
+        where: { id },
+        data: {
+          discount_request_percent: body.discount_request_percent,
+          discount_request_status: 'PENDING',
+        }
+      });
+      return NextResponse.json(order);
+    }
+
     // Update items
     if (body.items) {
       // Fetch existing order to get restaurant_id
@@ -60,13 +105,16 @@ export async function PATCH(
 
       // Recalculate totals
       const subtotal = body.items.reduce((sum: number, i: any) => sum + i.quantity * i.unit_price, 0);
+      const discount_amount = body.discount_amount || 0;
+      const discountedSubtotal = Math.max(0, subtotal - discount_amount);
       const restaurant = await prisma.restaurant.findFirst();
-      const gst = calculateGST(subtotal, restaurant?.cgst_rate || 2.5, restaurant?.sgst_rate || 2.5);
+      const gst = calculateGST(discountedSubtotal, restaurant?.cgst_rate || 2.5, restaurant?.sgst_rate || 2.5);
 
       const order = await prisma.order.update({
         where: { id },
         data: {
-          subtotal: gst.subtotal,
+          subtotal: subtotal,
+          discount_amount: discount_amount,
           cgst_amount: gst.cgst,
           sgst_amount: gst.sgst,
           total_amount: gst.total,

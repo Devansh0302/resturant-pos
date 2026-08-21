@@ -8,10 +8,18 @@ import { UtensilsCrossed, Plus, Pencil, Trash2, History, ChevronDown, ChevronUp,
 
 export default function MenuPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN';
-  const isStaff = session?.user?.role === 'WAITER' || session?.user?.role === 'CASHIER';
+  const role = session?.user?.role;
+  const restaurantId = (session?.user as any)?.restaurantId;
+  const isYangkiez = restaurantId === 'cmt1yrr3b0000l504jzjmwajb';
 
-  if (!isAdmin && !isStaff) {
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+  const isManager = role === 'MANAGER';
+  const isStaff = role === 'WAITER' || role === 'CASHIER';
+
+  const hasAccess = isAdmin || isStaff || (isManager && isYangkiez);
+  const canEdit = isAdmin || (isManager && isYangkiez);
+
+  if (!hasAccess) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh]">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#7C3AED20' }}>
@@ -36,12 +44,12 @@ export default function MenuPage() {
           <p className="section-subtitle">Manage categories, items, and pricing</p>
         </div>
       </div>
-      <MenuManagement isAdmin={isAdmin} />
+      <MenuManagement canEdit={canEdit} />
     </motion.div>
   );
 }
 
-function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
+function MenuManagement({ canEdit }: { canEdit: boolean }) {
   const [items, setItems] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -113,7 +121,7 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold" style={{ color: '#1A1A1A' }}>Menu Items</h2>
-        {isAdmin && (
+        {canEdit && (
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddCategoryModal(true)}
@@ -158,20 +166,20 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
               <th className="text-left px-4 py-3 font-medium" style={{ color: '#6B7280' }}>Type</th>
               <th className="text-right px-4 py-3 font-medium" style={{ color: '#6B7280' }}>Price</th>
               <th className="text-center px-4 py-3 font-medium" style={{ color: '#6B7280' }}>Available</th>
-              {isAdmin && <th className="text-right px-4 py-3 font-medium" style={{ color: '#6B7280' }}>Actions</th>}
+              {canEdit && <th className="text-right px-4 py-3 font-medium" style={{ color: '#6B7280' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {(activeCategory === 'all' ? categories : categories.filter(c => c.id === activeCategory)).map(category => (
               <React.Fragment key={category.id}>
                 <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', borderTop: '1px solid #E5E7EB' }}>
-                  <td colSpan={isAdmin ? 6 : 5} className="px-4 py-2 font-bold text-sm" style={{ color: '#10B981' }}>
+                  <td colSpan={canEdit ? 6 : 5} className="px-4 py-2 font-bold text-sm" style={{ color: '#10B981' }}>
                     {category.name}
                   </td>
                 </tr>
                 {category.items.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} className="px-4 py-3 text-center text-xs" style={{ color: '#9CA3AF' }}>
+                    <td colSpan={canEdit ? 6 : 5} className="px-4 py-3 text-center text-xs" style={{ color: '#9CA3AF' }}>
                       No items in this category.
                     </td>
                   </tr>
@@ -203,7 +211,7 @@ function MenuManagement({ isAdmin }: { isAdmin: boolean }) {
                           />
                         </button>
                       </td>
-                      {isAdmin && (
+                      {canEdit && (
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button

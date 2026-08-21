@@ -27,8 +27,11 @@ export async function middleware(request: NextRequest) {
   }
 
   const role = token.role as string;
+  const restaurantId = (token as any).restaurantId as string;
+  const isYangkiez = restaurantId === 'cmt1yrr3b0000l504jzjmwajb';
   
-  const roleAccess: Record<string, string[]> = {
+  // Default routing access (for all other restaurants - legacy mode)
+  let roleAccess: Record<string, string[]> = {
     '/dashboard': ['ADMIN', 'CASHIER'],
     '/tables': ['ADMIN', 'CASHIER', 'WAITER'],
     '/menu': ['ADMIN', 'CASHIER', 'WAITER'],
@@ -43,6 +46,24 @@ export async function middleware(request: NextRequest) {
     '/kds': ['ADMIN', 'CHEF', 'KITCHEN']
   };
 
+  // Yangkiez specific routing access
+  if (isYangkiez) {
+    roleAccess = {
+      '/dashboard': ['ADMIN', 'MANAGER', 'CASHIER'],
+      '/tables': ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'],
+      '/menu': ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'],
+      '/bills': ['ADMIN', 'MANAGER', 'CASHIER'],
+      '/reports': ['ADMIN', 'MANAGER'],
+      '/staff-performance': ['ADMIN', 'MANAGER'],
+      '/staff': ['ADMIN'],
+      '/support': ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'],
+      '/settings': ['ADMIN'],
+      '/delivery': ['ADMIN', 'MANAGER', 'CASHIER'],
+      '/super-admin': ['SUPER_ADMIN'],
+      '/kds': ['ADMIN', 'MANAGER', 'CHEF', 'KITCHEN']
+    };
+  }
+
   // Find if the current path is restricted
   for (const [route, allowedRoles] of Object.entries(roleAccess)) {
     if (pathname.startsWith(route)) {
@@ -50,7 +71,7 @@ export async function middleware(request: NextRequest) {
         // Redirect unauthorized user to a safe default page
         let defaultPage = '/tables';
         if (role === 'CHEF' || role === 'KITCHEN') defaultPage = '/kds';
-        if (role === 'CASHIER' || role === 'ADMIN') defaultPage = '/dashboard';
+        if (role === 'CASHIER' || role === 'ADMIN' || role === 'MANAGER') defaultPage = '/dashboard';
         if (role === 'SUPER_ADMIN') defaultPage = '/super-admin';
         
         return NextResponse.redirect(new URL(defaultPage, request.url));
@@ -63,7 +84,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     let defaultPage = '/tables'; 
     if (role === 'CHEF' || role === 'KITCHEN') defaultPage = '/kds';
-    if (role === 'CASHIER' || role === 'ADMIN') defaultPage = '/dashboard';
+    if (role === 'CASHIER' || role === 'ADMIN' || role === 'MANAGER') defaultPage = '/dashboard';
     if (role === 'SUPER_ADMIN') defaultPage = '/super-admin';
     return NextResponse.redirect(new URL(defaultPage, request.url));
   }

@@ -26,7 +26,7 @@ import {
 import Image from 'next/image';
 import { useUIStore } from '@/store/ui-store';
 
-const navItems = [
+const defaultNavItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'CASHIER'] },
   { label: 'Tables', href: '/tables', icon: Grid3x3, roles: ['ADMIN', 'CASHIER', 'WAITER'] },
   { label: 'Menu', href: '/menu', icon: UtensilsCrossed, roles: ['ADMIN', 'CASHIER', 'WAITER'] },
@@ -38,11 +38,26 @@ const navItems = [
   { label: 'Settings', href: '/settings', icon: Settings, roles: ['ADMIN'] },
 ];
 
+const yangkiezNavItems = [
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { label: 'Tables', href: '/tables', icon: Grid3x3, roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
+  { label: 'Menu', href: '/menu', icon: UtensilsCrossed, roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
+  { label: 'Bills', href: '/bills', icon: Receipt, roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { label: 'Reports', href: '/reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+  { label: 'Staff Performance', href: '/staff-performance', icon: Award, roles: ['ADMIN', 'MANAGER'] },
+  { label: 'Staff', href: '/staff', icon: Users, roles: ['ADMIN'] },
+  { label: 'Help & Support', href: '/support', icon: LifeBuoy, roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
+  { label: 'Settings', href: '/settings', icon: Settings, roles: ['ADMIN'] },
+];
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
   const { isMobileSidebarOpen, setMobileSidebarOpen } = useUIStore();
+  
+  const isYangkiez = (session?.user as any)?.restaurantId === 'cmt1yrr3b0000l504jzjmwajb';
+  const navItems = isYangkiez ? yangkiezNavItems : defaultNavItems;
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [integrationsEnabled, setIntegrationsEnabled] = useState(false);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
