@@ -461,7 +461,8 @@ function AddItemModal({ categories: initialCategories, onClose, onAdded }: { cat
         setShowNewCategory(false);
         toast.success(`Category "${created.name}" created`);
       } else {
-        toast.error('Failed to create category');
+        const err = await res.json();
+        toast.error(err.error || 'Failed to create category');
       }
     } catch { toast.error('Failed to create category'); }
     finally { setIsCreatingCategory(false); }
@@ -487,8 +488,11 @@ function AddItemModal({ categories: initialCategories, onClose, onAdded }: { cat
         toast.success(`${name} added to menu`);
         onAdded();
         onClose();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Failed to add item');
       }
-    } catch { toast.error('Failed to add item'); }
+    } catch { toast.error('Network error. Failed to add item'); }
     finally { setIsLoading(false); }
   };
 
