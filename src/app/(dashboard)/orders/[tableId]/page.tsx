@@ -571,7 +571,7 @@ export default function OrderPage() {
 
           {/* Category Tabs */}
           <div
-            className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar"
+            className="flex gap-2 mb-4 overflow-x-auto pb-2"
             onWheel={(e) => {
               if (e.deltaY !== 0) {
                 e.currentTarget.scrollLeft += e.deltaY;
@@ -610,12 +610,22 @@ export default function OrderPage() {
           <div className="flex-1 overflow-y-auto grid grid-cols-2 gap-3 content-start pb-4">
             {filteredItems.map((item, index) => {
               const qty = getItemQuantity(item.id);
+              const prevItem = index > 0 ? filteredItems[index - 1] : null;
+              const showCategoryHeader = activeCategory === 'all' && (!prevItem || prevItem.category?.id !== item.category?.id);
+              
               return (
-                <motion.div
-                  key={`menu-${item.id}-${index}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="rounded-xl p-4 flex flex-col justify-between relative"
+                <React.Fragment key={`menu-wrapper-${item.id}-${index}`}>
+                  {showCategoryHeader && (
+                    <div className="col-span-2 mt-1 mb-0">
+                      <h3 className="text-sm font-bold" style={{ color: '#1A1A1A' }}>
+                        {item.category?.name || 'Uncategorized'}
+                      </h3>
+                    </div>
+                  )}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="rounded-xl p-4 flex flex-col justify-between relative"
                   style={{
                     backgroundColor: item.is_available ? '#FFFFFF' : '#F9FAFB',
                     border: qty > 0 ? '2px solid #10B981' : '1px solid #E5E7EB',
@@ -689,7 +699,7 @@ export default function OrderPage() {
                       </button>
                     )}
                   </div>
-                </motion.div>
+                </React.Fragment>
               );
             })}
           </div>
