@@ -257,15 +257,15 @@ export default function OrderPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.message === 'No pending items for KOT') {
-          toast.success('No new items to send to Kitchen');
+          toast.success('No new items to print');
           return;
         }
-        toast.success('Order sent to kitchen', { description: 'Items have been dispatched to the KDS' });
+        toast.success('KOT Printed', { description: 'Items have been dispatched to the printer' });
       } else {
-        toast.error('Failed to send to kitchen');
+        toast.error('Failed to print KOT');
       }
     } catch {
-      toast.error('Failed to send to kitchen');
+      toast.error('Failed to print KOT');
     } finally {
       setIsPrintingKOT(false);
     }
@@ -847,8 +847,8 @@ export default function OrderPage() {
                   className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{ backgroundColor: '#FFFFFF', color: '#10B981', border: '1px solid #10B981' }}
                 >
-                  {isPrintingKOT ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChefHat className="w-4 h-4" />}
-                  Send to Kitchen
+                  {isPrintingKOT ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                  Print KOT
                 </button>
                 
                 {(session?.user as any)?.role === 'WAITER' ? (
