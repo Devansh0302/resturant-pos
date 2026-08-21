@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
         cgst_amount: true, 
         sgst_amount: true, 
         payment_mode: true,
+        split_payments: true,
         table_id: true,
         staff: {
           select: { name: true, role: true }
@@ -96,7 +97,12 @@ export async function GET(req: NextRequest) {
     // Payment mode split
     const paymentSplit = { CASH: 0, UPI: 0, CARD: 0 };
     orders.forEach(order => {
-      if (order.payment_mode) {
+      if (order.payment_mode === 'SPLIT' && order.split_payments) {
+        const splits = order.split_payments as { CASH?: number, UPI?: number, CARD?: number };
+        paymentSplit.CASH += splits.CASH || 0;
+        paymentSplit.UPI += splits.UPI || 0;
+        paymentSplit.CARD += splits.CARD || 0;
+      } else if (order.payment_mode && order.payment_mode !== 'SPLIT') {
         paymentSplit[order.payment_mode as keyof typeof paymentSplit] += (order.total_amount || 0);
       }
     });

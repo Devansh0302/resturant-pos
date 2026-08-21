@@ -9,7 +9,7 @@ export async function POST(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { payment_mode } = body;
+    const { payment_mode, split_payments } = body;
 
     if (!payment_mode) {
       return NextResponse.json({ error: 'Payment mode is required' }, { status: 400 });
@@ -20,6 +20,7 @@ export async function POST(
       data: {
         status: 'PAID',
         payment_mode,
+        split_payments: split_payments || null,
         payment_status: 'PAID',
         paid_at: new Date(),
       },

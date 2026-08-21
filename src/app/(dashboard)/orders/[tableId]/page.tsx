@@ -56,6 +56,7 @@ export default function OrderPage() {
   const [kotData, setKotData] = useState<any>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [paymentMode, setPaymentMode] = useState<string>('CASH');
+  const [splitPayments, setSplitPayments] = useState({ CASH: 0, UPI: 0, CARD: 0 });
   const [customerName, setCustomerName] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isPrintingKOT, setIsPrintingKOT] = useState(false);
@@ -389,13 +390,25 @@ export default function OrderPage() {
     if (!orderId) return;
     setIsProcessingPayment(true);
     try {
+      const payload: any = { payment_mode: paymentMode };
+      if (paymentMode === 'SPLIT') {
+        const totalSplit = splitPayments.CASH + splitPayments.UPI + splitPayments.CARD;
+        if (Math.abs(totalSplit - gst.total) > 0.01) {
+          toast.error(`Split amounts (₹${totalSplit.toFixed(2)}) must equal Grand Total (₹${gst.total.toFixed(2)})`);
+          setIsProcessingPayment(false);
+          return;
+        }
+        payload.split_payments = splitPayments;
+      }
+
       const res = await fetch(`/api/orders/${orderId}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payment_mode: paymentMode }),
+        body: JSON.stringify(payload),
       });
+
       if (res.ok) {
-        toast.success('Payment received', { description: `Paid via ${paymentMode}` });
+        toast.success('Payment recorded successfully', { description: `Paid via ${paymentMode}` });
         setShowBillModal(false);
         clearOrder();
         router.push('/tables');
@@ -1002,11 +1015,12 @@ export default function OrderPage() {
               {/* Payment Mode */}
               <div>
                 <p className="text-xs font-medium mb-2" style={{ color: '#6B7280' }}>Payment Mode</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-4">
                   {[
                     { mode: 'CASH', icon: Banknote, label: 'Cash' },
                     { mode: 'UPI', icon: Smartphone, label: 'UPI' },
                     { mode: 'CARD', icon: CreditCard, label: 'Card' },
+                    { mode: 'SPLIT', icon: ReceiptIndianRupee, label: 'Split' },
                   ].map(({ mode, icon: Icon, label }) => (
                     <button
                       key={mode}
@@ -1023,6 +1037,47 @@ export default function OrderPage() {
                     </button>
                   ))}
                 </div>
+
+                {paymentMode === 'SPLIT' && (
+                  <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-medium text-gray-600 w-12">CASH</span>
+                      <input 
+                        type="number" 
+                        value={splitPayments.CASH || ''} 
+                        onChange={(e) => setSplitPayments(p => ({ ...p, CASH: parseFloat(e.target.value) || 0 }))}
+                        className="flex-1 px-3 py-1.5 rounded border border-gray-200 text-sm outline-none font-mono text-right"
+                        placeholder="₹0.00"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-medium text-gray-600 w-12">UPI</span>
+                      <input 
+                        type="number" 
+                        value={splitPayments.UPI || ''} 
+                        onChange={(e) => setSplitPayments(p => ({ ...p, UPI: parseFloat(e.target.value) || 0 }))}
+                        className="flex-1 px-3 py-1.5 rounded border border-gray-200 text-sm outline-none font-mono text-right"
+                        placeholder="₹0.00"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-medium text-gray-600 w-12">CARD</span>
+                      <input 
+                        type="number" 
+                        value={splitPayments.CARD || ''} 
+                        onChange={(e) => setSplitPayments(p => ({ ...p, CARD: parseFloat(e.target.value) || 0 }))}
+                        className="flex-1 px-3 py-1.5 rounded border border-gray-200 text-sm outline-none font-mono text-right"
+                        placeholder="₹0.00"
+                      />
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-gray-200">
+                      <span className="text-xs font-bold text-gray-700">Remaining</span>
+                      <span className={`text-sm font-mono font-bold ${Math.abs(gst.total - (splitPayments.CASH + splitPayments.UPI + splitPayments.CARD)) > 0.01 ? 'text-red-500' : 'text-green-500'}`}>
+                        ₹{Math.max(0, gst.total - (splitPayments.CASH + splitPayments.UPI + splitPayments.CARD)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

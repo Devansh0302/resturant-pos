@@ -59,9 +59,21 @@ export async function GET(req: NextRequest) {
     });
 
     // Cash/UPI/Card split
-    const cashTotal = todayOrders.filter(o => o.payment_mode === 'CASH').reduce((s, o) => s + o.subtotal, 0);
-    const upiTotal = todayOrders.filter(o => o.payment_mode === 'UPI').reduce((s, o) => s + o.subtotal, 0);
-    const cardTotal = todayOrders.filter(o => o.payment_mode === 'CARD').reduce((s, o) => s + o.subtotal, 0);
+    let cashTotal = 0;
+    let upiTotal = 0;
+    let cardTotal = 0;
+    todayOrders.forEach(o => {
+      if (o.payment_mode === 'SPLIT' && o.split_payments) {
+        const splits = o.split_payments as { CASH?: number, UPI?: number, CARD?: number };
+        cashTotal += splits.CASH || 0;
+        upiTotal += splits.UPI || 0;
+        cardTotal += splits.CARD || 0;
+      } else {
+        if (o.payment_mode === 'CASH') cashTotal += o.total_amount;
+        if (o.payment_mode === 'UPI') upiTotal += o.total_amount;
+        if (o.payment_mode === 'CARD') cardTotal += o.total_amount;
+      }
+    });
 
     return NextResponse.json({
       today_revenue: todayRevenue,

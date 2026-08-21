@@ -153,6 +153,7 @@ model Order {
   total_amount             Float       @default(0)
   round_off                Float       @default(0)
   payment_mode    String?
+  split_payments  Json?
   payment_status  String      @default("PENDING")
   paid_at         DateTime?
   order_type      String      @default("DINE_IN")

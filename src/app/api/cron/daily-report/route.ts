@@ -60,9 +60,21 @@ export async function GET(req: NextRequest) {
       const totalGst = orders.reduce((sum, order) => sum + order.cgst_amount + order.sgst_amount, 0);
       const totalDiscount = orders.reduce((sum, order) => sum + order.discount_amount, 0);
       
-      const upiCollected = orders.filter(o => o.payment_mode === 'UPI').reduce((sum, o) => sum + o.total_amount, 0);
-      const cardCollected = orders.filter(o => o.payment_mode === 'CARD').reduce((sum, o) => sum + o.total_amount, 0);
-      const cashCollected = orders.filter(o => o.payment_mode === 'CASH').reduce((sum, o) => sum + o.total_amount, 0);
+      let upiCollected = 0;
+      let cardCollected = 0;
+      let cashCollected = 0;
+      orders.forEach(o => {
+        if (o.payment_mode === 'SPLIT' && o.split_payments) {
+          const splits = o.split_payments as { CASH?: number, UPI?: number, CARD?: number };
+          cashCollected += splits.CASH || 0;
+          upiCollected += splits.UPI || 0;
+          cardCollected += splits.CARD || 0;
+        } else {
+          if (o.payment_mode === 'CASH') cashCollected += o.total_amount;
+          if (o.payment_mode === 'UPI') upiCollected += o.total_amount;
+          if (o.payment_mode === 'CARD') cardCollected += o.total_amount;
+        }
+      });
 
       // 4. Send Email using Resend
       const emailHtml = `
