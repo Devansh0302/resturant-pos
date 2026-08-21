@@ -194,6 +194,10 @@ export default function OrderPage() {
   };
 
   const handleAddItem = (menuItem: MenuItem, variant?: { name: string, price: number }) => {
+    if (orderId && !isAdminOrManager) {
+      toast.error('Only managers can modify saved orders');
+      return;
+    }
     addItem({
       menu_item_id: menuItem.id,
       name: `${menuItem.name}${variant ? ` (${variant.name})` : ''} - ${menuItem.category?.name || 'Uncategorized'}`,
@@ -712,8 +716,12 @@ export default function OrderPage() {
               <label className="text-xs" style={{ color: '#6B7280' }}>Guests</label>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                  className="w-6 h-6 rounded flex items-center justify-center cursor-pointer"
+                  onClick={() => {
+                    if (orderId && !isAdminOrManager) return toast.error('Only managers can modify saved orders');
+                    setGuestCount(Math.max(1, guestCount - 1));
+                  }}
+                  disabled={orderId ? !isAdminOrManager : false}
+                  className="w-6 h-6 rounded flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#F3F4F6' }}
                 >
                   <Minus className="w-3 h-3" />
@@ -722,8 +730,12 @@ export default function OrderPage() {
                   {guestCount}
                 </span>
                 <button
-                  onClick={() => setGuestCount(guestCount + 1)}
-                  className="w-6 h-6 rounded flex items-center justify-center cursor-pointer"
+                  onClick={() => {
+                    if (orderId && !isAdminOrManager) return toast.error('Only managers can modify saved orders');
+                    setGuestCount(guestCount + 1);
+                  }}
+                  disabled={orderId ? !isAdminOrManager : false}
+                  className="w-6 h-6 rounded flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#F3F4F6' }}
                 >
                   <Plus className="w-3 h-3" />
@@ -756,8 +768,12 @@ export default function OrderPage() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => updateQuantity(item.menu_item_id, item.quantity - 1, item.variant_name)}
-                      className="w-6 h-6 rounded flex items-center justify-center cursor-pointer"
+                      onClick={() => {
+                        if (orderId && !isAdminOrManager) return toast.error('Only managers can modify saved orders');
+                        updateQuantity(item.menu_item_id, item.quantity - 1, item.variant_name);
+                      }}
+                      disabled={orderId ? !isAdminOrManager : false}
+                      className="w-6 h-6 rounded flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#F3F4F6' }}
                     >
                       <Minus className="w-3 h-3" />
@@ -766,8 +782,12 @@ export default function OrderPage() {
                       {item.quantity}
                     </span>
                     <button
-                      onClick={() => updateQuantity(item.menu_item_id, item.quantity + 1, item.variant_name)}
-                      className="w-6 h-6 rounded flex items-center justify-center cursor-pointer"
+                      onClick={() => {
+                        if (orderId && !isAdminOrManager) return toast.error('Only managers can modify saved orders');
+                        updateQuantity(item.menu_item_id, item.quantity + 1, item.variant_name);
+                      }}
+                      disabled={orderId ? !isAdminOrManager : false}
+                      className="w-6 h-6 rounded flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#F3F4F6' }}
                     >
                       <Plus className="w-3 h-3" />
@@ -779,13 +799,15 @@ export default function OrderPage() {
                   >
                     ₹{item.total_price}
                   </span>
-                  <button
-                    onClick={() => removeItem(item.menu_item_id, item.variant_name)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
-                    style={{ color: '#EF4444' }}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {(!orderId || isAdminOrManager) && (
+                    <button
+                      onClick={() => removeItem(item.menu_item_id, item.variant_name)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer p-1"
+                      style={{ color: '#EF4444' }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ))
             )}
