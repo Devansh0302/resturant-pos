@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
@@ -699,7 +699,8 @@ export default function OrderPage() {
                       </button>
                     )}
                   </div>
-                </React.Fragment>
+                </motion.div>
+              </React.Fragment>
               );
             })}
           </div>
