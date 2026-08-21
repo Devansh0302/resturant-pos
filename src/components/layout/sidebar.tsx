@@ -61,6 +61,21 @@ export function Sidebar() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [integrationsEnabled, setIntegrationsEnabled] = useState(false);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [accessibleRestaurants, setAccessibleRestaurants] = useState<any[]>([]);
+  const { update } = useSession();
+
+  useEffect(() => {
+    if ((session?.user as any)?.accessible_restaurant_ids?.length > 0) {
+      fetch('/api/restaurants/accessible')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 1) {
+            setAccessibleRestaurants(data);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [session]);
 
   useEffect(() => {
     setCurrentTime(new Date());
@@ -163,6 +178,24 @@ export function Sidebar() {
           >
             {session.user.role}
           </span>
+          {accessibleRestaurants.length > 1 && (
+            <div className="mt-3">
+              <select 
+                className="w-full text-xs p-1.5 rounded border bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                style={{ borderColor: '#E5E7EB', color: '#374151' }}
+                value={(session.user as any).restaurantId || ''}
+                onChange={async (e) => {
+                  const newId = e.target.value;
+                  await update({ restaurantId: newId });
+                  window.location.reload();
+                }}
+              >
+                {accessibleRestaurants.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 

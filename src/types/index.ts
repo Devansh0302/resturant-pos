@@ -7,6 +7,7 @@ declare module 'next-auth' {
       name: string;
       email: string;
       role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAITER' | 'CHEF' | 'KITCHEN';
+      accessible_restaurant_ids?: string[];
     };
   }
 
@@ -15,6 +16,7 @@ declare module 'next-auth' {
     name: string;
     email: string;
     role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAITER' | 'CHEF' | 'KITCHEN';
+    accessible_restaurant_ids?: string[];
   }
 }
 
@@ -22,6 +24,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAITER' | 'CHEF' | 'KITCHEN';
+    accessible_restaurant_ids?: string[];
   }
 }
 

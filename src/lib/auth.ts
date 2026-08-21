@@ -59,6 +59,7 @@ export const authOptions: NextAuthOptions = {
           role: staff.role as "ADMIN" | "CASHIER" | "WAITER" | "CHEF" | "SUPER_ADMIN" | "MANAGER",
           restaurantId: staff.restaurant_id,
           has_seen_tour: staff.has_seen_tour,
+          accessible_restaurant_ids: staff.accessible_restaurant_ids,
         };
       },
     }),
@@ -67,11 +68,15 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.restaurantId) {
+        token.restaurantId = session.restaurantId;
+      }
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
         token.restaurantId = (user as any).restaurantId;
+        token.accessible_restaurant_ids = (user as any).accessible_restaurant_ids || [];
         if ((user as any).impersonatedBy) {
           token.impersonatedBy = (user as any).impersonatedBy;
           token.impersonatedByName = (user as any).impersonatedByName;
@@ -85,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).restaurantId = token.restaurantId;
+        (session.user as any).accessible_restaurant_ids = token.accessible_restaurant_ids || [];
         if (token.impersonatedBy) {
           (session.user as any).impersonatedBy = token.impersonatedBy;
           (session.user as any).impersonatedByName = token.impersonatedByName;
