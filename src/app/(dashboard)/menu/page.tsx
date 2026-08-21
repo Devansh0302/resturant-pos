@@ -147,13 +147,18 @@ function MenuManagement({ canEdit }: { canEdit: boolean }) {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Remove "${name}" from the menu? It will no longer appear during billing.`)) return;
     try {
-      await fetch(`/api/menu/${id}`, {
+      const res = await fetch(`/api/menu/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_deleted: true }),
       });
-      toast.success(`${name} removed from menu`);
-      fetchMenu();
+      if (res.ok) {
+        toast.success(`${name} removed from menu`);
+        fetchMenu();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to remove item');
+      }
     } catch { toast.error('Failed to remove'); }
   };
 
