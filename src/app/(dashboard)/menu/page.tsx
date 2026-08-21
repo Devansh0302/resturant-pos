@@ -94,14 +94,36 @@ function MenuManagement({ canEdit }: { canEdit: boolean }) {
   };
 
   const handleToggleAvailability = async (id: string, current: boolean) => {
+    // Optimistic update
+    setCategories(prev => prev.map(c => ({
+      ...c,
+      items: c.items.map((i: any) => i.id === id ? { ...i, is_available: !current } : i)
+    })));
+
     try {
-      await fetch(`/api/menu/${id}`, {
+      const res = await fetch(`/api/menu/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_available: !current }),
       });
-      fetchMenu();
-    } catch { toast.error('Failed to toggle'); }
+      if (!res.ok) {
+        // Revert on error
+        setCategories(prev => prev.map(c => ({
+          ...c,
+          items: c.items.map((i: any) => i.id === id ? { ...i, is_available: current } : i)
+        })));
+        const err = await res.json();
+        toast.error(err.error || 'Failed to toggle availability');
+        return;
+      }
+    } catch { 
+      // Revert on error
+      setCategories(prev => prev.map(c => ({
+        ...c,
+        items: c.items.map((i: any) => i.id === id ? { ...i, is_available: current } : i)
+      })));
+      toast.error('Network error. Failed to toggle'); 
+    }
   };
 
   const handleDelete = async (id: string, name: string) => {
