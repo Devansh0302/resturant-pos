@@ -16,8 +16,28 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
-    const startDate = from ? new Date(from) : new Date(new Date().setHours(0, 0, 0, 0));
-    const endDate = to ? new Date(to + 'T23:59:59.999Z') : new Date(new Date().setHours(23, 59, 59, 999));
+    // Parse dates in IST (UTC+5:30) so "today" means Indian business day
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+    let startDate: Date;
+    let endDate: Date;
+
+    if (from) {
+      // Parse the date string as IST midnight (start of day in India)
+      startDate = new Date(new Date(from + 'T00:00:00.000Z').getTime() - IST_OFFSET_MS);
+    } else {
+      const nowIST = new Date(Date.now() + IST_OFFSET_MS);
+      const midnightIST = new Date(nowIST);
+      midnightIST.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(midnightIST.getTime() - IST_OFFSET_MS);
+    }
+
+    if (to) {
+      // Parse the date string as IST end of day (23:59:59 IST)
+      endDate = new Date(new Date(to + 'T23:59:59.999Z').getTime() - IST_OFFSET_MS);
+    } else {
+      endDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000 - 1);
+    }
 
     const orders = await prisma.order.findMany({
       where: {
@@ -48,7 +68,9 @@ export async function GET(req: NextRequest) {
 
     orders.forEach(order => {
       if (order.paid_at) {
-        const hour = order.paid_at.getHours();
+        // Convert UTC to IST for correct hour bucket
+        const istTime = new Date(order.paid_at.getTime() + IST_OFFSET_MS);
+        const hour = istTime.getUTCHours();
         const idx = hour - 6;
         if (idx >= 0 && idx < 18) {
           hourlyData[idx].revenue += order.subtotal;

@@ -26,8 +26,16 @@ export async function GET() {
       return NextResponse.json({ error: "No restaurant" }, { status: 403 });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Use IST (UTC+5:30) for date boundaries so reports match the Indian business day
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const nowUTC = Date.now();
+    const nowIST = new Date(nowUTC + IST_OFFSET_MS);
+
+    // Midnight today in IST, converted back to UTC for DB query
+    const todayIST = new Date(nowIST);
+    todayIST.setUTCHours(0, 0, 0, 0);
+    const today = new Date(todayIST.getTime() - IST_OFFSET_MS);
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const yesterday = new Date(today);
@@ -94,7 +102,9 @@ export async function GET() {
 
     hourlyOrders.forEach((order) => {
       if (order.paid_at) {
-        const hour = order.paid_at.getHours();
+        // Convert UTC timestamp to IST hour for display
+        const istTime = new Date(order.paid_at.getTime() + IST_OFFSET_MS);
+        const hour = istTime.getUTCHours();
         const idx = hour - 6;
         if (idx >= 0 && idx < 18) {
           hourlyData[idx].revenue += order.subtotal;
