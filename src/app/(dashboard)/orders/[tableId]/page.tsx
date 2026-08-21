@@ -73,8 +73,10 @@ export default function OrderPage() {
   const isCashier = role === 'CASHIER';
 
   const subtotal = getSubtotal();
+  const canAutoApprove = isYangkiez && (isAdminOrManager);
+  const isDiscountApplied = canAutoApprove || discountRequestStatus === 'APPROVED';
   const projectedDiscountAmount = isYangkiez ? (subtotal * discountPercent) / 100 : 0;
-  const discountAmount = discountRequestStatus === 'APPROVED' ? projectedDiscountAmount : 0;
+  const discountAmount = isDiscountApplied ? projectedDiscountAmount : 0;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const gst = calculateGST(discountedSubtotal);
 
