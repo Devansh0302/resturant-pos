@@ -29,7 +29,7 @@ export async function GET() {
             order_items: {
               include: {
                 menu_item: {
-                  select: { name: true, food_type: true },
+                  select: { name: true, food_type: true, category: { select: { name: true } } },
                 },
               },
             },

@@ -164,7 +164,7 @@ export default function OrderPage() {
         const mappedItems = table.activeOrder.order_items.map((oi: any) => ({
           id: oi.id,
           menu_item_id: oi.menu_item_id,
-          name: oi.menu_item.name,
+          name: `${oi.menu_item.name}${oi.variant_name ? ` (${oi.variant_name})` : ''} - ${oi.menu_item.category?.name || 'Uncategorized'}`,
           food_type: oi.menu_item.food_type,
           quantity: oi.quantity,
           unit_price: oi.unit_price,
@@ -190,7 +190,7 @@ export default function OrderPage() {
   const handleAddItem = (menuItem: MenuItem, variant?: { name: string, price: number }) => {
     addItem({
       menu_item_id: menuItem.id,
-      name: variant ? `${menuItem.name} (${variant.name})` : menuItem.name,
+      name: `${menuItem.name}${variant ? ` (${variant.name})` : ''} - ${menuItem.category?.name || 'Uncategorized'}`,
       food_type: menuItem.food_type,
       unit_price: variant ? variant.price : menuItem.price,
       variant_name: variant ? variant.name : null,
@@ -593,18 +593,7 @@ export default function OrderPage() {
                           )}
                         </div>
                       </div>
-                      {['ADMIN', 'CASHIER', 'MANAGER'].includes((session?.user as any)?.role) && (
-                        <button
-                          onClick={() => handleToggleAvailability(item.id, item.is_available)}
-                          className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-                            item.is_available ? 'text-gray-400 hover:bg-gray-100 hover:text-gray-600' : 'bg-red-50 text-red-600 hover:bg-red-100'
-                          }`}
-                          title={item.is_available ? "Mark as Out of Stock" : "Mark as In Stock"}
-                        >
-                          {item.is_available ? "●" : "○"}
-                        </button>
-                      )}
-                    </div>
+                      </div>
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <span
