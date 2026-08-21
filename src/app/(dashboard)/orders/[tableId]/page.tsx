@@ -88,21 +88,32 @@ export default function OrderPage() {
     fetchMenu();
     fetchTableAndOrder();
 
-    // Subscribe to Supabase Realtime to instantly update the order if someone else modifies it
+    // Subscribe to Supabase Realtime to instantly update the order if someone else modifies it    // Supabase realtime for table updates
     const channel = supabase
-      .channel(`order_channel_${tableId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        fetchTableAndOrder(false);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        fetchTableAndOrder(false);
-      })
+      .channel(`table_updates_${tableId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'Order', filter: `table_id=eq.${tableId}` },
+        (payload) => {
+          fetchTableAndOrder(false); // fetch without loading screen
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [tableId]);
+
+  // Poll for discount approval if pending (fallback if Realtime is disabled or fails)
+  useEffect(() => {
+    if (discountRequestStatus === 'PENDING') {
+      const interval = setInterval(() => {
+        fetchTableAndOrder(false);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [discountRequestStatus]);
 
   const fetchMenu = async () => {
     try {
