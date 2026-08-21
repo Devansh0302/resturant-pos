@@ -268,31 +268,6 @@ function LoginForm() {
             </p>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-gray-100">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
-              Quick Demo Access
-            </p>
-            <div className="flex flex-wrap justify-center gap-2.5">
-              {[
-                { role: 'Super Admin', email: 'super@nxtdine.com' },
-                { role: 'Admin', email: 'rahul@nxtdine.in' },
-                { role: 'Cashier', email: 'priya@nxtdine.in' },
-                { role: 'Chef', email: 'chef@nxtdine.in' },
-              ].map((cred) => (
-                <button
-                  key={cred.email}
-                  type="button"
-                  onClick={() => {
-                    setEmail(cred.email);
-                    setPassword('password123');
-                  }}
-                  className="px-4 py-2 rounded-lg bg-gray-50 hover:bg-emerald-50 hover:text-emerald-700 border border-gray-100 hover:border-emerald-200 text-xs font-semibold text-gray-600 transition-colors shadow-sm cursor-pointer"
-                >
-                  {cred.role}
-                </button>
-              ))}
-            </div>
-          </div>
 
         </div>
       </motion.div>
