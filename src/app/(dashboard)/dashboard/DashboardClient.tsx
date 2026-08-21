@@ -82,16 +82,6 @@ export function DashboardClient() {
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="w-8 h-8 animate-spin" style={{ color: "#10B981" }} />
-          <p className="text-sm" style={{ color: "#6B7280" }}>Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
