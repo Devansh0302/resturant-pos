@@ -74,6 +74,7 @@ export async function GET() {
                 unit_price: oi.unit_price,
                 total_price: oi.total_price,
                 notes: oi.notes,
+                variant_name: oi.variant_name ?? null,
                 menu_item: oi.menu_item,
               })),
             }

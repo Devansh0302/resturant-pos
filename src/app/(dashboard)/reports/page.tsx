@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, TrendingUp, DollarSign, ShoppingBag, Award } from 'lucide-react';
+import { Calendar, TrendingUp, DollarSign, ShoppingBag, Award, RefreshCw } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -15,11 +15,14 @@ export default function ReportsPage() {
   const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
   const [reportData, setReportData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => { fetchReport(); }, [period]);
 
-  const fetchReport = async () => {
-    setIsLoading(true);
+  const fetchReport = useCallback(async (manual = false) => {
+    if (manual) setIsRefreshing(true);
+    else setIsLoading(true);
     const now = new Date();
     let from = '', to = now.toISOString().split('T')[0];
 
@@ -42,11 +45,15 @@ export default function ReportsPage() {
     }
 
     try {
-      const res = await fetch(`/api/reports/sales?from=${from}&to=${to}`);
+      const res = await fetch(`/api/reports/sales?from=${from}&to=${to}`, { cache: 'no-store' });
       const data = await res.json();
       setReportData(data);
-    } catch { } finally { setIsLoading(false); }
-  };
+      setLastUpdated(new Date());
+    } catch { } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [period, customDate]);
 
   const paymentData = reportData?.payment_split
     ? [
@@ -65,10 +72,23 @@ export default function ReportsPage() {
           </div>
           <div>
             <h1 className="section-title">Reports</h1>
-            <p className="section-subtitle">Sales analytics and performance</p>
+            <p className="section-subtitle">
+              {lastUpdated
+                ? `Last updated ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                : 'Sales analytics and performance'}
+            </p>
           </div>
         </div>
-
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchReport(true)}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border cursor-pointer disabled:opacity-60"
+            style={{ borderColor: '#E5E7EB', color: '#6B7280' }}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         {/* Period Selector */}
         <div className="flex gap-1 p-1 rounded-lg" style={{ backgroundColor: '#F9FAFB' }}>
           {[
@@ -97,6 +117,7 @@ export default function ReportsPage() {
               className="px-2 py-1.5 rounded-md text-xs font-medium border border-gray-200 bg-white text-gray-700 outline-none focus:border-indigo-500 cursor-pointer"
             />
           </div>
+        </div>
         </div>
       </div>
 

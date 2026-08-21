@@ -59,6 +59,7 @@ export default function OrderPage() {
   const [customerName, setCustomerName] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [isPrintingKOT, setIsPrintingKOT] = useState(false);
+  const [isBillingLoading, setIsBillingLoading] = useState(false);
   const [selectedItemForVariant, setSelectedItemForVariant] = useState<MenuItem | null>(null);
 
   const subtotal = getSubtotal();
@@ -104,7 +105,7 @@ export default function OrderPage() {
     
     if (showLoading) setIsLoading(true);
     try {
-      const res = await fetch('/api/tables');
+      const res = await fetch('/api/tables', { cache: 'no-store' });
       const tables = await res.json();
       const table = tables.find((t: any) => t.id === tableId);
       setTableInfo(table);
@@ -237,17 +238,62 @@ export default function OrderPage() {
   };
 
   const handleGenerateBill = async () => {
-    if (!orderId) return;
+    if (!orderId && items.length === 0) return;
+    setIsBillingLoading(true);
     try {
-      const res = await fetch(`/api/orders/${orderId}/bill`, { method: 'POST' });
+      // If we have unsaved changes, save immediately (bypass debounce)
+      let currentOrderId = orderId;
+      if (items.length > 0) {
+        if (orderId) {
+          await fetch(`/api/orders/${orderId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: items.map(i => ({
+                menu_item_id: i.menu_item_id,
+                quantity: i.quantity,
+                unit_price: i.unit_price,
+                notes: i.notes,
+                variant_name: i.variant_name,
+              })),
+              notes,
+              guest_count: guestCount,
+            }),
+          });
+        } else {
+          const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              table_id: tableId,
+              staff_id: (session?.user as any)?.id,
+              guest_count: guestCount,
+              items: items.map(i => ({
+                menu_item_id: i.menu_item_id,
+                quantity: i.quantity,
+                unit_price: i.unit_price,
+                notes: i.notes,
+                variant_name: i.variant_name,
+              })),
+              notes,
+            }),
+          });
+          const data = await res.json();
+          currentOrderId = data.id;
+          setOrderId(data.id);
+        }
+      }
+      if (!currentOrderId) { toast.error('No order to bill'); return; }
+      const res = await fetch(`/api/orders/${currentOrderId}/bill`, { method: 'POST' });
       if (res.ok) {
         setShowBillModal(true);
-        // Removed auto-print to allow user to select payment mode and confirm first
       } else {
         toast.error('Failed to generate bill');
       }
     } catch {
       toast.error('Failed to generate bill');
+    } finally {
+      setIsBillingLoading(false);
     }
   };
 
@@ -655,12 +701,12 @@ export default function OrderPage() {
                 ) : (
                   <button
                     onClick={handleGenerateBill}
-                    disabled={!orderId}
+                    disabled={isBillingLoading || items.length === 0}
                     className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     style={{ backgroundColor: '#10B981' }}
                   >
-                    <FileText className="w-4 h-4" />
-                    Generate Bill
+                    {isBillingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                    {isBillingLoading ? 'Generating...' : 'Generate Bill'}
                   </button>
                 )}
                 <button
