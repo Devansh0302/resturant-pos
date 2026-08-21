@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { UtensilsCrossed, Plus, Pencil, Trash2, History, ChevronDown, ChevronUp, Lock, X, Loader2, BookOpen, FolderPlus } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function MenuPage() {
   const { data: session } = useSession();
@@ -62,7 +63,24 @@ function MenuManagement({ canEdit }: { canEdit: boolean }) {
   const [isLoading, setIsLoading] = useState(true);
   const [recipeItem, setRecipeItem] = useState<any>(null);
 
-  useEffect(() => { fetchMenu(); }, []);
+  useEffect(() => {
+    fetchMenu();
+
+    const channel = supabase
+      .channel('menu_updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu_items' },
+        (payload) => {
+          fetchMenu(); // Re-fetch menu on any change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const fetchMenu = async () => {
     try {

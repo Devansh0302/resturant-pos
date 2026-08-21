@@ -101,8 +101,21 @@ export default function OrderPage() {
       )
       .subscribe();
 
+    // Supabase realtime for menu updates
+    const menuChannel = supabase
+      .channel('pos_menu_updates')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu_items' },
+        (payload) => {
+          fetchMenu(); // Re-fetch menu on any change
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(menuChannel);
     };
   }, [tableId]);
 
