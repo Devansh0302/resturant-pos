@@ -441,6 +441,22 @@ export default function OrderPage() {
     router.push('/tables');
   };
 
+  const handleToggleAvailability = async (id: string, current: boolean) => {
+    try {
+      const res = await fetch(`/api/menu/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_available: !current }),
+      });
+      if (res.ok) {
+        toast.success(`Item marked as ${!current ? 'In Stock' : 'Out of Stock'}`);
+        fetchCategories(); // Refresh menu
+      }
+    } catch {
+      toast.error('Failed to update availability');
+    }
+  };
+
   const handlePrintBill = () => {
     window.print();
   };
@@ -550,18 +566,31 @@ export default function OrderPage() {
                   }}
                 >
                   <div>
-                    <div className="flex items-start gap-2">
-                      <span className={item.food_type === 'VEG' ? 'veg-dot' : 'non-veg-dot'} style={{ marginTop: '5px' }} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: '#1A1A1A' }}>
-                          {item.name}
-                        </p>
-                        {item.description && (
-                          <p className="text-[11px] truncate mt-0.5" style={{ color: '#9CA3AF' }}>
-                            {item.description}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <span className={item.food_type === 'VEG' ? 'veg-dot' : 'non-veg-dot'} style={{ marginTop: '5px' }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: '#1A1A1A' }}>
+                            {item.name}
                           </p>
-                        )}
+                          {item.description && (
+                            <p className="text-[11px] truncate mt-0.5" style={{ color: '#9CA3AF' }}>
+                              {item.description}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      {['ADMIN', 'CASHIER', 'MANAGER'].includes((session?.user as any)?.role) && (
+                        <button
+                          onClick={() => handleToggleAvailability(item.id, item.is_available)}
+                          className={`text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+                            item.is_available ? 'text-gray-400 hover:bg-gray-100 hover:text-gray-600' : 'bg-red-50 text-red-600 hover:bg-red-100'
+                          }`}
+                          title={item.is_available ? "Mark as Out of Stock" : "Mark as In Stock"}
+                        >
+                          {item.is_available ? "●" : "○"}
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3">
