@@ -496,13 +496,15 @@ export default function OrderPage() {
   };
 
   const handlePrintBill = () => {
-    // Use requestAnimationFrame to ensure the browser has rendered
-    // the print-area before triggering print, avoiding the "screenshot" flash
-    requestAnimationFrame(() => {
-      window.print();
+    // Call print synchronously so the browser can immediately open the print dialog.
+    window.print();
+    
+    // Defer the state updates so they happen after the print dialog is handled.
+    // This ensures the DOM for the print area is not destroyed while the print dialog is generating the preview.
+    setTimeout(() => {
       setShowBillModal(false);
       setShowPaymentModal(true);
-    });
+    }, 500);
   };
 
   const handleWhatsApp = () => {
