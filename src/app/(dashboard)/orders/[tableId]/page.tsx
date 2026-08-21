@@ -496,9 +496,13 @@ export default function OrderPage() {
   };
 
   const handlePrintBill = () => {
-    window.print();
-    setShowBillModal(false);
-    setShowPaymentModal(true);
+    // Use requestAnimationFrame to ensure the browser has rendered
+    // the print-area before triggering print, avoiding the "screenshot" flash
+    requestAnimationFrame(() => {
+      window.print();
+      setShowBillModal(false);
+      setShowPaymentModal(true);
+    });
   };
 
   const handleWhatsApp = () => {
@@ -560,7 +564,15 @@ export default function OrderPage() {
           </div>
 
           {/* Category Tabs */}
-          <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+          <div
+            className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar"
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+                e.preventDefault();
+              }
+            }}
+          >
             <button
               onClick={() => setActiveCategory('all')}
               className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer"
@@ -990,8 +1002,8 @@ export default function OrderPage() {
                   <span>{new Date().toLocaleDateString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span style={{ color: '#6B7280' }}>Table</span>
-                  <span>{tableInfo?.table_number}</span>
+                  <span style={{ color: '#6B7280' }}>{tableId === 'takeaway' ? 'Order Type' : 'Table'}</span>
+                  <span>{tableId === 'takeaway' ? 'Take Away' : tableInfo?.table_number}</span>
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: '#6B7280' }}>Guests</span>
@@ -1036,6 +1048,12 @@ export default function OrderPage() {
                   <span style={{ color: '#6B7280' }}>Subtotal</span>
                   <span style={{ fontFamily: 'var(--font-mono)' }}>₹{subtotal.toFixed(2)}</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-xs">
+                    <span style={{ color: '#F59E0B' }}>Discount ({discountPercent}%)</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: '#F59E0B' }}>-₹{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-xs">
                   <span style={{ color: '#9CA3AF' }}>CGST 2.5%</span>
                   <span style={{ fontFamily: 'var(--font-mono)', color: '#9CA3AF' }}>₹{gst.cgst.toFixed(2)}</span>

@@ -508,13 +508,23 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ─── Print Styles ──────────────────────────────── */
 @media print {
+  /* Hide everything first */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   body * {
     visibility: hidden;
   }
 
+  /* Show only the print area */
   .print-area,
   .print-area * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   .print-area {
@@ -525,8 +535,9 @@ h1, h2, h3, h4, h5, h6 {
     padding: 4mm;
     font-size: 12px;
     line-height: 1.4;
-    color: #000;
-    background: #fff;
+    color: #000 !important;
+    background: #fff !important;
+    z-index: 99999;
   }
 
   .print-area table {
@@ -545,8 +556,15 @@ h1, h2, h3, h4, h5, h6 {
     text-align: right;
   }
 
-  .no-print {
+  /* Hide all overlays, modals backdrops, and no-print elements */
+  .no-print,
+  [style*="rgba(0,0,0"] {
     display: none !important;
+  }
+
+  /* Remove box-shadows and backgrounds that cause visual flash */
+  * {
+    box-shadow: none !important;
   }
 }
 
