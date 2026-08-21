@@ -73,7 +73,8 @@ export default function OrderPage() {
   const isCashier = role === 'CASHIER';
 
   const subtotal = getSubtotal();
-  const discountAmount = isYangkiez ? (subtotal * discountPercent) / 100 : 0;
+  const projectedDiscountAmount = isYangkiez ? (subtotal * discountPercent) / 100 : 0;
+  const discountAmount = discountRequestStatus === 'APPROVED' ? projectedDiscountAmount : 0;
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const gst = calculateGST(discountedSubtotal);
 
@@ -125,7 +126,9 @@ export default function OrderPage() {
       if (table?.activeOrder) {
         setOrderId(table.activeOrder.id);
         setGuestCount(table.activeOrder.guest_count);
-        if (table.activeOrder.discount_amount && table.activeOrder.subtotal) {
+        if (table.activeOrder.discount_request_percent) {
+           setDiscountPercent(table.activeOrder.discount_request_percent);
+        } else if (table.activeOrder.discount_amount && table.activeOrder.subtotal) {
            setDiscountPercent((table.activeOrder.discount_amount / table.activeOrder.subtotal) * 100);
         }
         if (table.activeOrder.discount_request_status) {
@@ -716,10 +719,10 @@ export default function OrderPage() {
                 {/* Discount Section (Only for Yangkiez) */}
                 {isYangkiez && (isAdminOrManager || isCashier) && (
                   <div className="pt-2 border-t border-dashed" style={{ borderColor: '#E5E7EB' }}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium" style={{ color: '#6B7280' }}>Discount</span>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-bold" style={{ color: '#1A1A1A' }}>Discount</span>
                       {discountPercent > 0 && (
-                        <span className="text-xs" style={{ color: '#F59E0B' }}>-{discountPercent}% (₹{discountAmount.toFixed(2)})</span>
+                        <span className="text-xs" style={{ color: '#F59E0B' }}>-{discountPercent}% (₹{projectedDiscountAmount.toFixed(2)})</span>
                       )}
                     </div>
                     <div className="flex gap-2">
