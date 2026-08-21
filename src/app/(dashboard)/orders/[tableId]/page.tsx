@@ -488,7 +488,7 @@ export default function OrderPage() {
       });
       if (res.ok) {
         toast.success(`Item marked as ${!current ? 'In Stock' : 'Out of Stock'}`);
-        fetchCategories(); // Refresh menu
+        fetchMenu(); // Refresh menu
       }
     } catch {
       toast.error('Failed to update availability');
