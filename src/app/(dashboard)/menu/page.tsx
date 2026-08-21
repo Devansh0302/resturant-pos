@@ -84,7 +84,7 @@ function MenuManagement({ canEdit }: { canEdit: boolean }) {
 
   const fetchMenu = async () => {
     try {
-      const res = await fetch('/api/menu', { cache: 'no-store' });
+      const res = await fetch(`/api/menu?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       setCategories(data);
       setItems(data.flatMap((c: any) => c.items));
