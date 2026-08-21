@@ -103,7 +103,7 @@ export default function OrderPage() {
 
   const fetchMenu = async () => {
     try {
-      const res = await fetch('/api/menu');
+      const res = await fetch('/api/menu', { cache: 'no-store' });
       const data = await res.json();
       setMenuCategories(data);
     } catch (error) {
