@@ -72,7 +72,7 @@ export default function TablesPage() {
   const fetchTables = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     try {
-      const res = await fetch('/api/tables');
+      const res = await fetch('/api/tables', { cache: 'no-store' });
       const data = await res.json();
       
       if (Array.isArray(data)) {
